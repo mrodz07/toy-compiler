@@ -1,4 +1,5 @@
 CC_FLAGS = -Wall -Wextra -Wpedantic -lfl -lm
+BISON_FLAGS = -Wcounterexamples
 
 default: a.out
 
@@ -8,7 +9,7 @@ a.out: reconocedor.tab.c lex.yy.c
 	cc $(CC_FLAGS) reconocedor.tab.c lex.yy.c
 
 reconocedor.tab.c: reconocedor.y
-	bison -d reconocedor.y
+	bison -d $(BISON_FLAGS) reconocedor.y
 
 lex.yy.c: reconocedor.lex
 	flex reconocedor.lex
