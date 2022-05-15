@@ -16,4 +16,4 @@ lex.yy.c: reconocedor.lex
 .PHONY: clean run
 
 clean:
-	rm -rf *.o *.out lex.yy.c
+	rm -rf *.o *.out lex.yy.c reconocedor.tab.c reconocedor.tab.h
