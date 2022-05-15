@@ -1,38 +1,14 @@
-CC_FLAGS = -Wall -Wextra -Wpedantic -lfl
+CC_FLAGS = -Wall -Wextra -Wpedantic -lfl -lm
 
 default: a.out
 
-run: test1 test2 test3 test4 test5 test6 test7 test8 test9
+#run: test1 test2 test3 test4 test5 test6 test7 test8 test9
 
-test1: a.out
-	./a.out prueba1.txt
+a.out: reconocedor.tab.c lex.yy.c
+	cc $(CC_FLAGS) reconocedor.tab.c lex.yy.c
 
-test2: a.out
-	./a.out prueba2.txt
-
-test3: a.out
-	./a.out prueba3.txt
-
-test4: a.out
-	./a.out prueba4.txt
-
-test5: a.out
-	./a.out prueba5.txt
-
-test6: a.out
-	./a.out prueba6.txt
-
-test7: a.out
-	./a.out prueba7.txt
-
-test8: a.out
-	./a.out prueba8.txt
-
-test9: a.out
-	./a.out prueba9.txt
-
-a.out: lex.yy.c
-	cc $(CC_FLAGS) lex.yy.c
+reconocedor.tab.c: reconocedor.y
+	bison -d reconocedor.y
 
 lex.yy.c: reconocedor.lex
 	flex reconocedor.lex
