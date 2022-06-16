@@ -39,7 +39,7 @@ decl_lst: decl SEMCLN decl_lst
         | decl
         ;
 
-decl: VAR ID COLON type { addNodeToSymbolTable(&symbolRoot, newNode(T_VARIABLE, $4, $2, newValue($4, 0, 0), NULL, NULL, NULL, NULL, NULL));  /* Agregamos los nodos al apuntador de tabla de símbolos hecho al inicio del programa */ }
+decl: VAR ID COLON type { symbolTableAddNode(&symbolRoot, nodeNew(T_VARIABLE, $4, $2, valueNew($4, 0, 0), NULL, NULL, NULL, NULL, NULL));  /* Agregamos los nodos al apuntador de tabla de símbolos hecho al inicio del programa */ }
     ;
 
 type: INT   { $$ = INT; }
@@ -48,20 +48,20 @@ type: INT   { $$ = INT; }
 
 stmt: ID ARROW expr {
                       // La condicional que aparece en esta regla junto con expr, term, factor y expression sirve para comprobar que los tipos de argumentos (variable y expresión en este caso) sean iguales
-                      if (getCommonSubtype(getSymbolTableNode(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1 ) { 
-                        $$ = newNode(T_SENTENCE, ASSIGN, NULL, NULL, NULL, getSymbolTableNode(&symbolRoot, $1), $3, NULL, NULL); 
+                      if (subtypeGetCommon(symbolTableGet(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1 ) { 
+                        $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, symbolTableGet(&symbolRoot, $1), $3, NULL, NULL); 
                       } else { 
                         die_line("Los 'subtypes' son distintos en ASSIGN"); 
                       }
                     }
-    | IF expression THEN stmt { $$ = newNode(T_SENTENCE, IF, NULL, NULL, NULL, $2, $4, NULL, NULL); }
-    | IF expression THEN stmt ELSE stmt { $$ = newNode(T_SENTENCE, IF_ELSE, NULL, NULL, NULL, $2, $4, $6, NULL); }
-    | WHILE PRNTH1 expression PRNTH2 stmt { $$ = newNode(T_SENTENCE, WHILE, NULL, NULL, NULL, $3, $5, NULL, NULL); }
-    | REPEAT stmt UNTIL PRNTH1 expression PRNTH2 { $$ = newNode(T_SENTENCE, REPEAT, NULL, NULL, NULL, $2, $5, NULL, NULL); }
-    | FOR ID ARROW expr UNTIL expr STEP expr DO stmt { $$ = newNode(T_SENTENCE, FOR, $2, NULL, NULL, $4, $6, $8, $10); /* Se guarda el ID en el 'name' para su futura modificación*/ }
-    | READ ID { $$ = newNode(T_SENTENCE, READ, NULL, NULL, NULL, getSymbolTableNode(&symbolRoot, $2), NULL, NULL, NULL); }
-    | PRINT expr { $$ = newNode(T_SENTENCE, PRINT, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
-    | BEGN opt_stmts END { $$ = newNode(T_SENTENCE, BEGN_END, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
+    | IF expression THEN stmt { $$ = nodeNew(T_SENTENCE, IF, NULL, NULL, NULL, $2, $4, NULL, NULL); }
+    | IF expression THEN stmt ELSE stmt { $$ = nodeNew(T_SENTENCE, IF_ELSE, NULL, NULL, NULL, $2, $4, $6, NULL); }
+    | WHILE PRNTH1 expression PRNTH2 stmt { $$ = nodeNew(T_SENTENCE, WHILE, NULL, NULL, NULL, $3, $5, NULL, NULL); }
+    | REPEAT stmt UNTIL PRNTH1 expression PRNTH2 { $$ = nodeNew(T_SENTENCE, REPEAT, NULL, NULL, NULL, $2, $5, NULL, NULL); }
+    | FOR ID ARROW expr UNTIL expr STEP expr DO stmt { $$ = nodeNew(T_SENTENCE, FOR, $2, NULL, NULL, $4, $6, $8, $10); /* Se guarda el ID en el 'name' para su futura modificación*/ }
+    | READ ID { $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, symbolTableGet(&symbolRoot, $2), NULL, NULL, NULL); }
+    | PRINT expr { $$ = nodeNew(T_SENTENCE, PRINT, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
+    | BEGN opt_stmts END { $$ = nodeNew(T_SENTENCE, BEGN_END, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
     ;
 
 opt_stmts: stmt_lst 
@@ -74,16 +74,16 @@ stmt_lst: stmt SEMCLN stmt_lst  { $1 -> next = $3; $$ = $1; }
         ;
 
 expr: expr SUM term {
-                      if (getCommonSubtype(treeGetType($1), treeGetType($3)) != -1) {
-                        $$ = newNode(T_ARITHMETIC_OP, SUM, NULL, NULL, NULL, $1, $3, NULL, NULL);
+                      if (subtypeGetCommon(treeGetType($1), treeGetType($3)) != -1) {
+                        $$ = nodeNew(T_ARITHMETIC_OP, SUM, NULL, NULL, NULL, $1, $3, NULL, NULL);
                       } else {
                         die_line("Los 'subtypes' son distintos en expr");
                       }
                     }
 
     | expr RES term {
-                      if (getCommonSubtype(treeGetType($1), treeGetType($3)) != -1) {
-                        $$ = newNode(T_ARITHMETIC_OP, RES, NULL, NULL, NULL, $1, $3, NULL, NULL);
+                      if (subtypeGetCommon(treeGetType($1), treeGetType($3)) != -1) {
+                        $$ = nodeNew(T_ARITHMETIC_OP, RES, NULL, NULL, NULL, $1, $3, NULL, NULL);
                       } else {
                         die_line("Los 'subtypes' son distintos en expr");
                       }
@@ -91,16 +91,16 @@ expr: expr SUM term {
     | term ;
 
 term: term MUL factor {
-                        if (getCommonSubtype(treeGetType($1), treeGetType($3)) != -1) {
-                          $$ = newNode(T_ARITHMETIC_OP, MUL, NULL, NULL, NULL, $1, $3, NULL, NULL);
+                        if (subtypeGetCommon(treeGetType($1), treeGetType($3)) != -1) {
+                          $$ = nodeNew(T_ARITHMETIC_OP, MUL, NULL, NULL, NULL, $1, $3, NULL, NULL);
                         } else {
                           die_line("Los 'subtypes' son distintos en term");
                         }
                       }
 
     | term DIV factor {
-                        if (getCommonSubtype(treeGetType($1), treeGetType($3)) != -1) {
-                          $$ = newNode(T_ARITHMETIC_OP, DIV, NULL, NULL, NULL, $1, $3, NULL, NULL);
+                        if (subtypeGetCommon(treeGetType($1), treeGetType($3)) != -1) {
+                          $$ = nodeNew(T_ARITHMETIC_OP, DIV, NULL, NULL, NULL, $1, $3, NULL, NULL);
                         } else {
                           die_line("Los 'subtypes' son distintos en term");
                         }
@@ -109,46 +109,46 @@ term: term MUL factor {
     ;
 
 factor: PRNTH1 expr PRNTH2 { $$ = $2; }
-      | ID { $$ = getSymbolTableNode(&symbolRoot, $1); }
-      | NUM_INT { $$ = newNode(T_CONSTANT, INT, NULL, newValue(INT, $1, 0), NULL, NULL, NULL, NULL, NULL); }
-      | NUM_FLT { $$ = newNode(T_CONSTANT, FLOAT, NULL, newValue(FLOAT, 0, $1), NULL, NULL, NULL, NULL, NULL); }
+      | ID { $$ = symbolTableGet(&symbolRoot, $1); }
+      | NUM_INT { $$ = nodeNew(T_CONSTANT, INT, NULL, valueNew(INT, $1, 0), NULL, NULL, NULL, NULL, NULL); }
+      | NUM_FLT { $$ = nodeNew(T_CONSTANT, FLOAT, NULL, valueNew(FLOAT, 0, $1), NULL, NULL, NULL, NULL, NULL); }
       ;
 
 expression: expr LESTN expr     {
-                                  if (getCommonSubtype(treeGetType($1), treeGetType($3)) != -1) {
-                                    $$ = newNode(T_LOGICAL_OP, LESTN, NULL, NULL, NULL, $1, $3, NULL, NULL);
+                                  if (subtypeGetCommon(treeGetType($1), treeGetType($3)) != -1) {
+                                    $$ = nodeNew(T_LOGICAL_OP, LESTN, NULL, NULL, NULL, $1, $3, NULL, NULL);
                                   } else {
                                     die_line("Los 'subtypes' son distintos en expression");
                                   }
                                 }
 
           | expr GRETN expr     {
-                                  if (getCommonSubtype(treeGetType($1), treeGetType($3)) != -1) {
-                                    $$ = newNode(T_LOGICAL_OP, GRETN, NULL, NULL, NULL, $1, $3, NULL, NULL);
+                                  if (subtypeGetCommon(treeGetType($1), treeGetType($3)) != -1) {
+                                    $$ = nodeNew(T_LOGICAL_OP, GRETN, NULL, NULL, NULL, $1, $3, NULL, NULL);
                                   } else {
                                     die_line("Los 'subtypes' son distintos en expression");
                                   }
                                 }
 
           | expr EQUALS expr    {
-                                  if (getCommonSubtype(treeGetType($1), treeGetType($3)) != -1) {
-                                    $$ = newNode(T_LOGICAL_OP, EQUALS, NULL, NULL, NULL, $1, $3, NULL, NULL);
+                                  if (subtypeGetCommon(treeGetType($1), treeGetType($3)) != -1) {
+                                    $$ = nodeNew(T_LOGICAL_OP, EQUALS, NULL, NULL, NULL, $1, $3, NULL, NULL);
                                   } else {
                                     die_line("Los 'subtypes' son distintos en expression");
                                   }
                                 }
 
           | expr LESSOREQ expr  {
-                                  if (getCommonSubtype(treeGetType($1), treeGetType($3)) != -1) {
-                                    $$ = newNode(T_LOGICAL_OP, LESSOREQ, NULL, NULL, NULL, $1, $3, NULL, NULL);
+                                  if (subtypeGetCommon(treeGetType($1), treeGetType($3)) != -1) {
+                                    $$ = nodeNew(T_LOGICAL_OP, LESSOREQ, NULL, NULL, NULL, $1, $3, NULL, NULL);
                                   } else {
                                     die_line("Los 'subtypes' son distintos en expression");
                                   }
                                 }
 
           | expr GRETOREQ expr  {
-                                  if (getCommonSubtype(treeGetType($1), treeGetType($3)) != -1) {
-                                    $$ = newNode(T_LOGICAL_OP, GRETOREQ, NULL, NULL, NULL, $1, $3, NULL, NULL);
+                                  if (subtypeGetCommon(treeGetType($1), treeGetType($3)) != -1) {
+                                    $$ = nodeNew(T_LOGICAL_OP, GRETOREQ, NULL, NULL, NULL, $1, $3, NULL, NULL);
                                   } else {
                                     die_line("Los 'subtypes' son distintos en expression");
                                   }

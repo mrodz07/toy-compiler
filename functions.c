@@ -2,6 +2,7 @@
 ***REMOVED*** * Funciones de interpretación y construcción del arbol sintáctico
 */
 #include "functions.h"
+#include "parser.tab.h"
 
 // Declaración de apuntadores que servirán para la tabla de símbolos principal
 Node *treeRoot = NULL;
@@ -29,9 +30,9 @@ void msg(const char *s)
 * Imprime un árbol sintáctico con identación. La identación debe comenzar en un valor mayor o igual a uno y simboliza la profundidad en la que se encuentra el elemento del árbol que se imprime. El step es solo el paso que le sumarémos a la identación para indicar los niveles. 
 * Se revisa el tipo y subtipo para imprimir correctamente cada nodo. Al final llamamos a los campos op* del nodo y los imprimimos
 */
-void printTree(Node *node, int indent, int step)
+void treePrint(Node *node, int indent, int step)
 {
-  if (indent < 1) die("Indent can not be negative in printTree");
+  if (indent < 1) die("Indent can not be negative in treePrint");
 
   if (node != NULL) {
     //printf("call %d\naddress: %p\ntype: %d\nsubtype: %d\nnext: %p\nop1: %p\nop2: %p\nop3: %p\nop4: %p\n", indent, (void *)node, node -> type, node -> subtype, (void *)node -> next, (void *)node -> op1, (void *)node -> op2, (void *)node -> op3, (void *)node -> op4);
@@ -123,17 +124,17 @@ void printTree(Node *node, int indent, int step)
         }
         break;
     }
-    if (node -> op1 != NULL) printTree(node -> op1, indent+step, step);
-    if (node -> op2 != NULL) printTree(node -> op2, indent+step, step);
-    if (node -> op3 != NULL) printTree(node -> op3, indent+step, step);
-    if (node -> op4 != NULL) printTree(node -> op4, indent+step, step);
+    if (node -> op1 != NULL) treePrint(node -> op1, indent+step, step);
+    if (node -> op2 != NULL) treePrint(node -> op2, indent+step, step);
+    if (node -> op3 != NULL) treePrint(node -> op3, indent+step, step);
+    if (node -> op4 != NULL) treePrint(node -> op4, indent+step, step);
     // Si el nodo es variable no imprimimos su next porque las variables en next contienen apuntadores a la lista de símbolos
-    if (node -> type != T_VARIABLE && node -> next != NULL) printTree(node -> next, indent, step);
+    if (node -> type != T_VARIABLE && node -> next != NULL) treePrint(node -> next, indent, step);
   }
 }
 
 //Imprime la table de símbolos que es una simple lista ligada
-void printSymbolTable(Node *st)
+void symbolTablePrint(Node *st)
 {
   if (st == NULL) return;
   Node *tmp = malloc(sizeof(Node));
@@ -154,7 +155,7 @@ void printSymbolTable(Node *st)
 }
 
 // Busca en la table de símbolos la variable con el nombre especificado
-Node* getSymbolTableNode(Node **st, const char *name)
+Node* symbolTableGet(Node **st, const char *name)
 {
   Node *tmp = *st; 
   while (tmp != NULL) {
@@ -169,7 +170,7 @@ Node* getSymbolTableNode(Node **st, const char *name)
 }
 
 // Crea un nuevo nodo y regresa un apuntador a este
-Node* newNode(int type, int subtype, char *name, Value *value, Node *next, Node *op1, Node *op2, Node *op3, Node *op4)
+Node* nodeNew(int type, int subtype, char *name, Value *value, Node *next, Node *op1, Node *op2, Node *op3, Node *op4)
 {
   Node *tmp = malloc(sizeof(Node));
   tmp -> type = type;
@@ -187,10 +188,10 @@ Node* newNode(int type, int subtype, char *name, Value *value, Node *next, Node 
 }
 
 // Añade el nodo que le mandamos a la table de símbolos, comprueba que sea de tipo variable para que no se agregue otro tipo de elemento a la tabla
-void addNodeToSymbolTable(Node **st, Node *n)
+void symbolTableAddNode(Node **st, Node *n)
 {
-  if (n == NULL) die("Node nulo como argumento a addNodeToSymbolTable");
-  if (n -> type != T_VARIABLE) die("Nodo incorrento como argumento a addNodeToSymbolTable");
+  if (n == NULL) die("Node nulo como argumento a symbolTableAddNode");
+  if (n -> type != T_VARIABLE) die("Nodo incorrento como argumento a symbolTableAddNode");
   Node *tmp;
 
   if (*st == NULL) {
@@ -205,9 +206,9 @@ void addNodeToSymbolTable(Node **st, Node *n)
 }
 
 // Crea un nuevo Value y comprueba que su subtipo sea valido
-Value* newValue(int type, int val_int, double val_float)
+Value* valueNew(int type, int val_int, double val_float)
 {
-  if (type != INT && type != FLOAT) die("El tipo pasado a newValue no es INT ni FLOAT");
+  if (type != INT && type != FLOAT) die("El tipo pasado a valueNew no es INT ni FLOAT");
 
   Value *tmp = malloc(sizeof(Value));
   tmp -> type = type;
@@ -222,16 +223,16 @@ Value* newValue(int type, int val_int, double val_float)
   return tmp;
 }
 
-// Regresa el tipo común entre los dos tipos, si no tienen regresa -1
-int getCommonType(int t1, int t2)
+// Compara los dos tipos, si son iguales regresa el comun, si no tienen regresa -1
+int typeGetCommon(int t1, int t2)
 {
   if (t1 == t2)
     return t1;
   return -1;
 }
 
-// Regresa el subtipo común entre los dos tipos, si no tienen regresa -1
-int getCommonSubtype(int s1, int s2)
+// Compara los dos subtipos, si son iguales regresa el comun, si no tienen regresa -1
+int subtypeGetCommon(int s1, int s2)
 {
   if (s1 == s2)
     return s1;
@@ -247,33 +248,34 @@ int treeGetType(Node *n)
   if (n -> op1 == NULL && n -> op2 == NULL)
     return n -> subtype;
 
-  return getCommonSubtype(treeGetType(n -> op1), treeGetType(n -> op2));
+  return subtypeGetCommon(treeGetType(n -> op1), treeGetType(n -> op2));
 }
 
-void stmt_readInt(Node *symb)
+void varRead(Node *symb)
 {
+  if (symb -> subtype != INT && symb -> subtype != FLOAT) die("Se entró a varRead con un nodo incorrecto");
+
   char *str = malloc(sizeof(char) * MAX_NUM_LEN);
   char **tmp = NULL;
-  int *val_int = malloc(sizeof(int));
+  int* val_int;
+  double* val_float;
+  
+  if (symb -> subtype == INT) {
+    val_int = malloc(sizeof(int));
 
-  fgets(str, MAX_NUM_LEN, stdin);
-  *val_int = strtoimax(str, tmp, 10);
+    fgets(str, MAX_NUM_LEN, stdin);
+    *val_int = strtoimax(str, tmp, 10);
 
-  symb -> value -> val_int = val_int; 
-  str = NULL;
-  free(str);
-}
+    symb -> value -> val_int = val_int; 
+  } else {
+    val_float = malloc(sizeof(double));
 
-void stmt_readFloat(Node *symb)
-{
-  char *str = malloc(sizeof(char) * MAX_NUM_LEN);
-  char **tmp = NULL;
-  double *val_float = malloc(sizeof(double));
+    fgets(str, MAX_NUM_LEN, stdin);
+    *val_float = strtod(str, tmp);
 
-  fgets(str, MAX_NUM_LEN, stdin);
-  *val_float = strtod(str, tmp);
+    symb -> value -> val_float = val_float; 
+  }
 
-  symb -> value -> val_float = val_float; 
   str = NULL;
   free(str);
 }
@@ -287,59 +289,59 @@ void valuePrint(Value* val)
   }
 }
 
-Value* sumValues(Value *n1, Value *n2)
+Value* valueSum(Value *n1, Value *n2)
 {
   if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
-    return newValue(INT, *n1 -> val_int + *n2 -> val_int, 0);
+    return valueNew(INT, *n1 -> val_int + *n2 -> val_int, 0);
   } else {
-    return newValue(FLOAT, 0, *n1 -> val_float + *n2 -> val_float);
+    return valueNew(FLOAT, 0, *n1 -> val_float + *n2 -> val_float);
   }
 
   return NULL;
 }
 
-Value* resValues(Value *n1, Value *n2)
+Value* valueRes(Value *n1, Value *n2)
 {
   if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
-    return newValue(INT, *n1 -> val_int - *n2 -> val_int, 0);
+    return valueNew(INT, *n1 -> val_int - *n2 -> val_int, 0);
   } else {
-    return newValue(FLOAT, 0, *n1 -> val_float - *n2 -> val_float);
+    return valueNew(FLOAT, 0, *n1 -> val_float - *n2 -> val_float);
   }
 
   return NULL;
 }
 
-Value* divValues(Value *n1, Value *n2)
+Value* valueDiv(Value *n1, Value *n2)
 {
   if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
-    return newValue(INT, *n1 -> val_int / *n2 -> val_int, 0);
+    return valueNew(INT, *n1 -> val_int / *n2 -> val_int, 0);
   } else {
-    return newValue(FLOAT, 0, *n1 -> val_float / *n2 -> val_float);
+    return valueNew(FLOAT, 0, *n1 -> val_float / *n2 -> val_float);
   }
 
   return NULL;
 }
 
-Value* mulValues(Value *n1, Value *n2)
+Value* valueMul(Value *n1, Value *n2)
 {
   if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
-    return newValue(INT, *n1 -> val_int * *n2 -> val_int, 0);
+    return valueNew(INT, *n1 -> val_int * *n2 -> val_int, 0);
   } else {
-    return newValue(FLOAT, 0, *n1 -> val_float * *n2 -> val_float);
+    return valueNew(FLOAT, 0, *n1 -> val_float * *n2 -> val_float);
   }
 
   return NULL;
 }
 
-int lestnValues(Value *n1, Value *n2)
+int valueLestn(Value *n1, Value *n2)
 {
   if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
 
@@ -352,7 +354,7 @@ int lestnValues(Value *n1, Value *n2)
   return 0;
 }
 
-int gretnValues(Value *n1, Value *n2)
+int valueGretn(Value *n1, Value *n2)
 {
   if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
 
@@ -365,7 +367,7 @@ int gretnValues(Value *n1, Value *n2)
   return 0;
 }
 
-int equalsValues(Value *n1, Value *n2)
+int valueEqual(Value *n1, Value *n2)
 {
   if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
 
@@ -378,7 +380,7 @@ int equalsValues(Value *n1, Value *n2)
   return 0;
 }
 
-int lessoreqValues(Value *n1, Value *n2)
+int valueLessOrEq(Value *n1, Value *n2)
 {
   if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
 
@@ -391,7 +393,7 @@ int lessoreqValues(Value *n1, Value *n2)
   return 0;
 }
 
-int gretoreqValues(Value *n1, Value *n2)
+int valueGretOrEq(Value *n1, Value *n2)
 {
   if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
 
@@ -404,63 +406,63 @@ int gretoreqValues(Value *n1, Value *n2)
   return 0;
 }
 
-void stmt_if(Node *node)
+void interpretIf(Node *node)
 {
-  if (expression_eval(node -> op1)) {
-    stmt_interpret(node -> op2);
+  if (logicalOpEval(node -> op1)) {
+    interpretNode(node -> op2);
   }
 }
 
-void stmt_if_else(Node *node)
+void interpretIfElse(Node *node)
 {
-  if (expression_eval(node -> op1)) {
-    stmt_interpret(node -> op2);
+  if (logicalOpEval(node -> op1)) {
+    interpretNode(node -> op2);
   } else {
-    stmt_interpret(node -> op3);
+    interpretNode(node -> op3);
   }
 }
 
-void stmt_while(Node *node)
+void interpretWhile(Node *node)
 {
-  while (expression_eval(node -> op1)) {
+  while (logicalOpEval(node -> op1)) {
     // Es un nodo BEGN_END y por eso lo llamamos con su op1
-    stmt_interpret(node -> op2 -> op1);
+    interpretNode(node -> op2 -> op1);
   }
 }
 
-void stmt_repeat(Node *node)
+void interpretRepeat(Node *node)
 {
   do {
-    stmt_interpret(node -> op1);    
-  } while (expression_eval(node -> op2));
+    interpretNode(node -> op1);    
+  } while (logicalOpEval(node -> op2));
 }
 
-void stmt_for(Node *node)
+void interpretFor(Node *node)
 {
-  valueAssign(&getSymbolTableNode(&symbolRoot, node -> name) -> value, expr_eval(node -> op1)); 
+  valueAssign(&symbolTableGet(&symbolRoot, node -> name) -> value, arithOpEval(node -> op1)); 
 
-  while (equalsValues(getSymbolTableNode(&symbolRoot, node -> name) -> value, expr_eval(node -> op2)) != 1) {
-    stmt_interpret(node -> op4);
-    valueAssign(&getSymbolTableNode(&symbolRoot, node->name) -> value, sumValues(getSymbolTableNode(&symbolRoot, node -> name) -> value, expr_eval(node->op3)));
+  while (valueEqual(symbolTableGet(&symbolRoot, node -> name) -> value, arithOpEval(node -> op2)) != 1) {
+    interpretNode(node -> op4);
+    valueAssign(&symbolTableGet(&symbolRoot, node->name) -> value, valueSum(symbolTableGet(&symbolRoot, node -> name) -> value, arithOpEval(node->op3)));
   } 
 }
 
-Value* expr_eval(Node *node)
+Value* arithOpEval(Node *node)
 {
-  if (node -> type != T_ARITHMETIC_OP && node -> type != T_CONSTANT && node -> type != T_VARIABLE) die("Expresión incorrecta como argumento a expr_eval");
+  if (node -> type != T_ARITHMETIC_OP && node -> type != T_CONSTANT && node -> type != T_VARIABLE) die("Expresión incorrecta como argumento a arithOpEval");
 
   switch (node -> subtype) {
     case SUM:
-      return sumValues(expr_eval(node -> op1), expr_eval(node -> op2));
+      return valueSum(arithOpEval(node -> op1), arithOpEval(node -> op2));
       break;
     case RES:
-      return resValues(expr_eval(node -> op1), expr_eval(node -> op2));
+      return valueRes(arithOpEval(node -> op1), arithOpEval(node -> op2));
       break; 
     case MUL:
-      return mulValues(expr_eval(node -> op1), expr_eval(node -> op2));
+      return valueMul(arithOpEval(node -> op1), arithOpEval(node -> op2));
       break; 
     case DIV:
-      return divValues(expr_eval(node -> op1), expr_eval(node -> op2));
+      return valueDiv(arithOpEval(node -> op1), arithOpEval(node -> op2));
       break;
     case INT:
       return node -> value;
@@ -469,35 +471,35 @@ Value* expr_eval(Node *node)
       return node -> value;
       break;
     default:
-      die("Nodo con 'subtype' incorrecto en expr_eval");
+      die("Nodo con 'subtype' incorrecto en arithOpEval");
       break;
   }
 
   return NULL;
 }
 
-int expression_eval(Node *node)
+int logicalOpEval(Node *node)
 {
-  if (node -> type != T_LOGICAL_OP) die("Expresión incorrecta para evaluar en expression_eval");
+  if (node -> type != T_LOGICAL_OP) die("Expresión incorrecta para evaluar en logicalOpEval");
 
   switch (node -> subtype) {
     case LESTN:
-      return lestnValues(expr_eval(node -> op1), expr_eval(node -> op2));
+      return valueLestn(arithOpEval(node -> op1), arithOpEval(node -> op2));
       break;
     case GRETN:
-      return gretnValues(expr_eval(node -> op1), expr_eval(node -> op2));
+      return valueGretn(arithOpEval(node -> op1), arithOpEval(node -> op2));
       break;
     case EQUALS:
-      return equalsValues(expr_eval(node -> op1), expr_eval(node -> op2));
+      return valueEqual(arithOpEval(node -> op1), arithOpEval(node -> op2));
       break;
     case LESSOREQ:
-      return lessoreqValues(expr_eval(node -> op1), expr_eval(node -> op2));
+      return valueLessOrEq(arithOpEval(node -> op1), arithOpEval(node -> op2));
       break;
     case GRETOREQ:
-      return gretoreqValues(expr_eval(node -> op1), expr_eval(node -> op2));
+      return valueGretOrEq(arithOpEval(node -> op1), arithOpEval(node -> op2));
       break;
     default:
-      die("Expresión pasada a expression_eval con subtipo desconocido");
+      die("Expresión pasada a logicalOpEval con subtipo desconocido");
       break;
   }
 
@@ -514,48 +516,41 @@ void valueAssign(Value **var, Value *expr)
   free(tmp);
 }
 
-void stmt_interpret(Node *node)
+void interpretNode(Node *node)
 {
   if (node == NULL) return;
 
   switch (node -> subtype) {
     case ASSIGN:
-      valueAssign(&node -> op1 -> value, expr_eval(node -> op2));
+      valueAssign(&node -> op1 -> value, arithOpEval(node -> op2));
       break;
     case READ:
-      switch (node -> op1 -> subtype) {
-        case INT:
-          stmt_readInt(node -> op1);
-        break;
-        case FLOAT:
-          stmt_readFloat(node -> op1);
-        break;
-      }
+      varRead(node -> op1);
       break;
     case PRINT:
-      valuePrint(expr_eval(node -> op1));
+      valuePrint(arithOpEval(node -> op1));
       break;
     case IF:
-      stmt_if(node); 
+      interpretIf(node); 
       break;
     case IF_ELSE:
-      stmt_if_else(node);
+      interpretIfElse(node);
       break;
     case WHILE:
-      stmt_while(node);
+      interpretWhile(node);
       break;
     case REPEAT:
-      stmt_repeat(node);
+      interpretRepeat(node);
       break;
     case FOR:
-      stmt_for(node);
+      interpretFor(node);
       break;
     default:
-      die("Entrado a stmt_interpret con subtipo no valido");
+      die("Entrado a interpretNode con subtipo no valido");
       break;  
   }
 
-  if (node -> next != NULL) stmt_interpret(node -> next);
+  if (node -> next != NULL) interpretNode(node -> next);
 }
 
 // Función personalizada de yyerror, para que siempre se llame la función personalizada die
@@ -583,12 +578,12 @@ int main(int argc, char *argv[])
   yyparse();
   printf("El programa es valido\n\n");
   printf("Tabla de símbolos\n");
-  printSymbolTable(symbolRoot);
+  symbolTablePrint(symbolRoot);
   printf("\n");
   printf("Arbol sintáctico\n");
-  printTree(treeRoot, 1, 1);
+  treePrint(treeRoot, 1, 1);
   printf("\n");
   printf("Program execution\n");
-  stmt_interpret(treeRoot);
+  interpretNode(treeRoot);
   return 0;
 }

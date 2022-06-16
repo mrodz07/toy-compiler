@@ -5,7 +5,7 @@
 */
 %{
   #include "parser.tab.h"
-  char** tmp = NULL;
+  char** tmp = NULL; // Variable usada por strtod y strtoimax
 %}
 
 DIGIT [0-9]
