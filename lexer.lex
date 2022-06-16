@@ -22,13 +22,15 @@ ID  [a-zA-Z_$]+{DIGIT}*[a-zA-Z_$0-9]*
 "begin"     { return BEGN;    }
 "end"       { return END;     }
 "<-"        { return ARROW;   }
-"if"        { return IF;      }
 "("         { return PRNTH1;  }
 ")"         { return PRNTH2;  }
+"if"        { return IF;      }
 "else"      { return ELSE;    }
 "for"       { return FOR;     }
 "while"     { return WHILE;   }
 "repeat"    { return REPEAT;  }
+"read"      { return READ;    }
+"print"     { return PRINT;   }
 "until"     { return UNTIL;   }
 "step"      { return STEP;    }
 "do"        { return DO;      }
@@ -36,8 +38,6 @@ ID  [a-zA-Z_$]+{DIGIT}*[a-zA-Z_$0-9]*
 "var"       { return VAR;     }
 "int"       { return INT;     }
 "float"     { return FLOAT;   }
-"read"      { return READ;    }
-"print"     { return PRINT;   }
 ":"         { return COLON;   }
 ";"         { return SEMCLN;  }
 "+"         { return SUM;     }

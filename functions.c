@@ -8,22 +8,24 @@
 Node *treeRoot = NULL;
 Node *symbolRoot = NULL;
 
-// Función que termina la ejecución del programa. Imprime un código, linea y el número del token que falló
+// Función que termina la ejecución del programa e imprime un mensaje personalizado
 void die(const char *s) 
 {
   fprintf(stderr, "Error: %s\n", s);
   exit(1);
 }
 
+// Función que termina la ejecución del programa. Imprime un mensaje personalizado, la linea y el número del token que falló
 void die_line(const char *s) 
 {
   fprintf(stderr, "Error: %s en linea %d con 'token' %s\n", s, yylineno, yytext);
   exit(1);
 }
 
-void msg(const char *s)
+// Función que imprime un mensaje de advertencia a stdout
+void msg_warning(const char *s)
 {
-  fprintf(stderr, "Advertencia: %s en linea %d\n", s, yylineno);
+  fprintf(stdout, "Advertencia: %s en linea %d\n", s, yylineno);
 }
 
 /*
@@ -32,111 +34,110 @@ void msg(const char *s)
 */
 void treePrint(Node *node, int indent, int step)
 {
-  if (indent < 1) die("Indent can not be negative in treePrint");
+  if (indent < 1) die("La identación no puede ser negativo en treePrint");
+  if (node == NULL) die("Nodo negativo como argumento a treePrint");
 
-  if (node != NULL) {
-    //printf("call %d\naddress: %p\ntype: %d\nsubtype: %d\nnext: %p\nop1: %p\nop2: %p\nop3: %p\nop4: %p\n", indent, (void *)node, node -> type, node -> subtype, (void *)node -> next, (void *)node -> op1, (void *)node -> op2, (void *)node -> op3, (void *)node -> op4);
-    switch (node -> type) {
-      case T_SENTENCE:
-        switch (node -> subtype) {
-          case ASSIGN:
-            printf("%*cRead: T_SENTENCE\tsubtype: ASSIGN\n", indent, ' ');
-            break;
-          case IF:
-            printf("%*cRead: T_SENTENCE\tsubtype: IF\n", indent, ' ');
-            break;
-          case IF_ELSE:
-            printf("%*cRead: T_SENTENCE\tsubtype: IF_ELSE\n", indent, ' ');
-            break;
-          case WHILE:
-            printf("%*cRead: T_SENTENCE\tsubtype: WHILE\n", indent, ' ');
-            break;
-          case REPEAT:
-            printf("%*cRead: T_SENTENCE\tsubtype: REPEAT\n", indent, ' ');
-            break;
-          case FOR:
-            printf("%*cRead: T_SENTENCE\tsubtype: FOR\n", indent, ' ');
-            break;
-          case READ:
-            printf("%*cRead: T_SENTENCE\tsubtype: READ\n", indent, ' ');
-            break;
-          case PRINT:
-            printf("%*cRead: T_SENTENCE\tsubtype: PRINT\n", indent, ' ');
-            break;
-          case BEGN_END:
-            printf("%*cRead: T_SENTENCE\tsubtype: BEGN_END\n", indent, ' ');
-            break;
-        }
-        break;
-      case T_VARIABLE:
-        switch (node -> subtype) {
-          case INT: 
-            printf("%*cRead: T_VARIABLE\tsubtype: INT\tname: %s value: %d\n", indent, ' ', node -> name, *node -> value -> val_int);
-            break;
-          case FLOAT:
-            printf("%*cRead: T_VARIABLE\tsubtype: FLOAT\tname: %s value: %f\n", indent, ' ', node -> name, *node -> value -> val_float);
-            break;
-        }
-        break;
-      case T_CONSTANT:
-        switch (node -> subtype) {
-          case INT:
-            printf("%*cRead: T_CONSTANT\tsubtype: INT\n", indent, ' ');
-            break;
-          case FLOAT:
-            printf("%*cRead: T_CONSTANT\tsubtype: FLOAT\n", indent, ' ');
-            break;
-        }
-        break;
-      case T_ARITHMETIC_OP:
-        switch (node -> subtype) {
-          case SUM:
-            printf("%*cRead: T_ARITH_OP\tsubtype: SUM\n", indent, ' ');
-            break;
-          case RES:
-            printf("%*cRead: T_ARITH_OP\tsubtype: RES\n", indent, ' ');
-            break;
-          case MUL:
-            printf("%*cRead: T_ARITH_OP\tsubtype: MUL\n", indent, ' ');
-            break;
-          case DIV:
-            printf("%*cRead: T_ARITH_OP\tsubtype: DIV\n", indent, ' ');
-            break;
-        }
-        break;
-      case T_LOGICAL_OP:
-        switch (node -> subtype) {
-          case LESTN:
-            printf("%*cRead: T_LOGICAL_OP\tsubtype: LESTN\n", indent, ' ');
-            break;
-          case GRETN:
-            printf("%*cRead: T_LOGICAL_OP\tsubtype: GRETN\n", indent, ' ');
-            break;
-          case EQUALS:
-            printf("%*cRead: T_LOGICAL_OP\tsubtype: EQUALS\n", indent, ' ');
-            break;
-          case LESSOREQ:
-            printf("%*cRead: T_LOGICAL_OP\tsubtype: LESSOREQ\n", indent, ' ');
-            break;
-          case GRETOREQ:
-            printf("%*cRead: T_LOGICAL_OP\tsubtype: GRETOREQ\n", indent, ' ');
-            break;
-        }
-        break;
-    }
-    if (node -> op1 != NULL) treePrint(node -> op1, indent+step, step);
-    if (node -> op2 != NULL) treePrint(node -> op2, indent+step, step);
-    if (node -> op3 != NULL) treePrint(node -> op3, indent+step, step);
-    if (node -> op4 != NULL) treePrint(node -> op4, indent+step, step);
-    // Si el nodo es variable no imprimimos su next porque las variables en next contienen apuntadores a la lista de símbolos
-    if (node -> type != T_VARIABLE && node -> next != NULL) treePrint(node -> next, indent, step);
+  switch (node -> type) {
+    case T_SENTENCE:
+      switch (node -> subtype) {
+        case ASSIGN:
+          printf("%*cRead: T_SENTENCE\tsubtype: ASSIGN\n", indent, ' ');
+          break;
+        case IF:
+          printf("%*cRead: T_SENTENCE\tsubtype: IF\n", indent, ' ');
+          break;
+        case IF_ELSE:
+          printf("%*cRead: T_SENTENCE\tsubtype: IF_ELSE\n", indent, ' ');
+          break;
+        case WHILE:
+          printf("%*cRead: T_SENTENCE\tsubtype: WHILE\n", indent, ' ');
+          break;
+        case REPEAT:
+          printf("%*cRead: T_SENTENCE\tsubtype: REPEAT\n", indent, ' ');
+          break;
+        case FOR:
+          printf("%*cRead: T_SENTENCE\tsubtype: FOR\n", indent, ' ');
+          break;
+        case READ:
+          printf("%*cRead: T_SENTENCE\tsubtype: READ\n", indent, ' ');
+          break;
+        case PRINT:
+          printf("%*cRead: T_SENTENCE\tsubtype: PRINT\n", indent, ' ');
+          break;
+        case BEGN_END:
+          printf("%*cRead: T_SENTENCE\tsubtype: BEGN_END\n", indent, ' ');
+          break;
+      }
+      break;
+    case T_VARIABLE:
+      switch (node -> subtype) {
+        case INT: 
+          printf("%*cRead: T_VARIABLE\tsubtype: INT\tname: %s value: %d\n", indent, ' ', node -> name, *node -> value -> val_int);
+          break;
+        case FLOAT:
+          printf("%*cRead: T_VARIABLE\tsubtype: FLOAT\tname: %s value: %f\n", indent, ' ', node -> name, *node -> value -> val_float);
+          break;
+      }
+      break;
+    case T_CONSTANT:
+      switch (node -> subtype) {
+        case INT:
+          printf("%*cRead: T_CONSTANT\tsubtype: INT\n", indent, ' ');
+          break;
+        case FLOAT:
+          printf("%*cRead: T_CONSTANT\tsubtype: FLOAT\n", indent, ' ');
+          break;
+      }
+      break;
+    case T_ARITHMETIC_OP:
+      switch (node -> subtype) {
+        case SUM:
+          printf("%*cRead: T_ARITH_OP\tsubtype: SUM\n", indent, ' ');
+          break;
+        case RES:
+          printf("%*cRead: T_ARITH_OP\tsubtype: RES\n", indent, ' ');
+          break;
+        case MUL:
+          printf("%*cRead: T_ARITH_OP\tsubtype: MUL\n", indent, ' ');
+          break;
+        case DIV:
+          printf("%*cRead: T_ARITH_OP\tsubtype: DIV\n", indent, ' ');
+          break;
+      }
+      break;
+    case T_LOGICAL_OP:
+      switch (node -> subtype) {
+        case LESTN:
+          printf("%*cRead: T_LOGICAL_OP\tsubtype: LESTN\n", indent, ' ');
+          break;
+        case GRETN:
+          printf("%*cRead: T_LOGICAL_OP\tsubtype: GRETN\n", indent, ' ');
+          break;
+        case EQUALS:
+          printf("%*cRead: T_LOGICAL_OP\tsubtype: EQUALS\n", indent, ' ');
+          break;
+        case LESSOREQ:
+          printf("%*cRead: T_LOGICAL_OP\tsubtype: LESSOREQ\n", indent, ' ');
+          break;
+        case GRETOREQ:
+          printf("%*cRead: T_LOGICAL_OP\tsubtype: GRETOREQ\n", indent, ' ');
+          break;
+      }
+      break;
   }
+  if (node -> op1 != NULL) treePrint(node -> op1, indent+step, step);
+  if (node -> op2 != NULL) treePrint(node -> op2, indent+step, step);
+  if (node -> op3 != NULL) treePrint(node -> op3, indent+step, step);
+  if (node -> op4 != NULL) treePrint(node -> op4, indent+step, step);
+  // Si el nodo es variable no imprimimos su next porque las variables en next contienen apuntadores a la lista de símbolos
+  if (node -> type != T_VARIABLE && node -> next != NULL) treePrint(node -> next, indent, step);
 }
 
-//Imprime la table de símbolos que es una simple lista ligada
+//Imprime la table de símbolos que es una lista ligada
 void symbolTablePrint(Node *st)
 {
-  if (st == NULL) return;
+  if (st == NULL) die("Nodo nulo como argumento a symbolTablePrint");
+
   Node *tmp = malloc(sizeof(Node));
   tmp = st;
 
@@ -157,6 +158,9 @@ void symbolTablePrint(Node *st)
 // Busca en la table de símbolos la variable con el nombre especificado
 Node* symbolTableGet(Node **st, const char *name)
 {
+  if (st == NULL) die("El argumento st pasado a symbolTableGet es NULL");
+  if (*st == NULL) die("El argumento st pasado a symbolTableGet apunta a NULL");
+
   Node *tmp = *st; 
   while (tmp != NULL) {
     if (strcmp(tmp -> name, name) == 0)
@@ -164,7 +168,6 @@ Node* symbolTableGet(Node **st, const char *name)
     tmp = tmp -> next;
   }
 
-  free(tmp);
   die("Variable no encontrada en la tabla de símbolos");
   return NULL;
 }
@@ -172,15 +175,22 @@ Node* symbolTableGet(Node **st, const char *name)
 // Crea un nuevo nodo y regresa un apuntador a este
 Node* nodeNew(int type, int subtype, char *name, Value *value, Node *next, Node *op1, Node *op2, Node *op3, Node *op4)
 {
+  // Revisamos si el tipo y subtipo son validos
+  if (type < T_SENTENCE || type > T_LOGICAL_OP) die("Tipo incorrecto como argumento a nodeNew");
+  if ( !(subtype >= INT && subtype <= FLOAT) && !(subtype >= READ && subtype <= REPEAT) ) die("Subtipo incorrecto como argumento a nodeNew");
+
   Node *tmp = malloc(sizeof(Node));
   tmp -> type = type;
   tmp -> subtype = subtype;
+
   tmp -> value = value;
   tmp -> next = next;
   tmp -> op1 = op1;
   tmp -> op2 = op2;
   tmp -> op3 = op3;
   tmp -> op4 = op4;
+
+  // Copiamos el nombre si no es NULL al apartado de nombre del struct
   if (name != NULL) {
     strcpy(tmp -> name, name);
   }
@@ -190,8 +200,10 @@ Node* nodeNew(int type, int subtype, char *name, Value *value, Node *next, Node 
 // Añade el nodo que le mandamos a la table de símbolos, comprueba que sea de tipo variable para que no se agregue otro tipo de elemento a la tabla
 void symbolTableAddNode(Node **st, Node *n)
 {
+  if (st == NULL) die("st nulo como argumento a symbolTableAddNode");
   if (n == NULL) die("Node nulo como argumento a symbolTableAddNode");
   if (n -> type != T_VARIABLE) die("Nodo incorrento como argumento a symbolTableAddNode");
+
   Node *tmp;
 
   if (*st == NULL) {
@@ -226,6 +238,9 @@ Value* valueNew(int type, int val_int, double val_float)
 // Compara los dos tipos, si son iguales regresa el comun, si no tienen regresa -1
 int typeGetCommon(int t1, int t2)
 {
+  // Comprobamos que se pasen argumentos dentro del enum hecho por bison
+  if ( !(t1 >= BEGN && t1 <= ID) && !(t2 >= BEGN && t2 <= ID)) die("Tipos invalidos como argumento a typeGetCommon");
+
   if (t1 == t2)
     return t1;
   return -1;
@@ -234,6 +249,9 @@ int typeGetCommon(int t1, int t2)
 // Compara los dos subtipos, si son iguales regresa el comun, si no tienen regresa -1
 int subtypeGetCommon(int s1, int s2)
 {
+  // Comprobamos que se pasen argumentos dentro del enum hecho por bison
+  if ( !(s1 >= BEGN && s1 <= ID) && !(s2 >= BEGN && s2 <= ID)) die("Subtipos invalidos como argumento a subtypeGetCommon");
+
   if (s1 == s2)
     return s1;
   return -1;
@@ -251,6 +269,9 @@ int treeGetType(Node *n)
   return subtypeGetCommon(treeGetType(n -> op1), treeGetType(n -> op2));
 }
 
+/*
+* Lee entrada del usuario y la escribe dentro de una variable que le pasemos
+*/
 void varRead(Node *symb)
 {
   if (symb -> subtype != INT && symb -> subtype != FLOAT) die("Se entró a varRead con un nodo incorrecto");
@@ -280,8 +301,13 @@ void varRead(Node *symb)
   free(str);
 }
 
+/*
+* Imprime un Value
+*/
 void valuePrint(Value* val)
 {
+  if (val == NULL) die("Entrado a valuePrint con val nulo");
+
   if (val -> type == INT) {
     printf("%d\n", *val -> val_int);
   } else {
@@ -289,9 +315,12 @@ void valuePrint(Value* val)
   }
 }
 
+/*
+* Regresa un nuevo Value que es la suma de los dos que pasamos como argumento
+*/
 Value* valueSum(Value *n1, Value *n2)
 {
-  if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
+  if (n1 -> type != INT && n1 -> type != FLOAT) die("valueSum llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
     return valueNew(INT, *n1 -> val_int + *n2 -> val_int, 0);
@@ -302,9 +331,12 @@ Value* valueSum(Value *n1, Value *n2)
   return NULL;
 }
 
+/*
+* Regresa un nuevo Value que es la resta de los dos que pasamos como argumento
+*/
 Value* valueRes(Value *n1, Value *n2)
 {
-  if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
+  if (n1 -> type != INT && n1 -> type != FLOAT) die("valueRes llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
     return valueNew(INT, *n1 -> val_int - *n2 -> val_int, 0);
@@ -315,9 +347,12 @@ Value* valueRes(Value *n1, Value *n2)
   return NULL;
 }
 
+/*
+* Regresa un nuevo Value que es la divición de los dos que pasamos como argumento
+*/
 Value* valueDiv(Value *n1, Value *n2)
 {
-  if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
+  if (n1 -> type != INT && n1 -> type != FLOAT) die("valueDiv llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
     return valueNew(INT, *n1 -> val_int / *n2 -> val_int, 0);
@@ -328,9 +363,12 @@ Value* valueDiv(Value *n1, Value *n2)
   return NULL;
 }
 
+/*
+* Regresa un nuevo Value que es la multiplicación de los dos que pasamos como argumento
+*/
 Value* valueMul(Value *n1, Value *n2)
 {
-  if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
+  if (n1 -> type != INT && n1 -> type != FLOAT) die("valueMul llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
     return valueNew(INT, *n1 -> val_int * *n2 -> val_int, 0);
@@ -341,9 +379,13 @@ Value* valueMul(Value *n1, Value *n2)
   return NULL;
 }
 
+/*
+* Regresa un valor entero que es el resultado de la comparación de los dos valores que pasamos como argumento
+* Básicamente es un '<'
+*/
 int valueLestn(Value *n1, Value *n2)
 {
-  if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
+  if (n1 -> type != INT && n1 -> type != FLOAT) die("valueLestn llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
     if (*n1 -> val_int < *n2 -> val_int) return 1 ; else return 0;
@@ -354,9 +396,13 @@ int valueLestn(Value *n1, Value *n2)
   return 0;
 }
 
+/*
+* Regresa un valor entero que es el resultado de la comparación de los dos valores que pasamos como argumento
+* Básicamente es un '>'
+*/
 int valueGretn(Value *n1, Value *n2)
 {
-  if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
+  if (n1 -> type != INT && n1 -> type != FLOAT) die("valueGretn llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
     if (*n1 -> val_int > *n2 -> val_int) return 1 ; else return 0;
@@ -367,9 +413,13 @@ int valueGretn(Value *n1, Value *n2)
   return 0;
 }
 
+/*
+* Regresa un valor entero que es el resultado de la comparación de los dos valores que pasamos como argumento
+* Básicamente es un '=='
+*/
 int valueEqual(Value *n1, Value *n2)
 {
-  if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
+  if (n1 -> type != INT && n1 -> type != FLOAT) die("valueEqual llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
     if (*n1 -> val_int == *n2 -> val_int) return 1 ; else return 0;
@@ -380,9 +430,13 @@ int valueEqual(Value *n1, Value *n2)
   return 0;
 }
 
+/*
+* Regresa un valor entero que es el resultado de la comparación de los dos valores que pasamos como argumento
+* Básicamente es un '<='
+*/
 int valueLessOrEq(Value *n1, Value *n2)
 {
-  if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
+  if (n1 -> type != INT && n1 -> type != FLOAT) die("valueLessOrEq llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
     if (*n1 -> val_int <= *n2 -> val_int) return 1; else return 0;
@@ -393,9 +447,13 @@ int valueLessOrEq(Value *n1, Value *n2)
   return 0;
 }
 
+/*
+* Regresa un valor entero que es el resultado de la comparación de los dos valores que pasamos como argumento
+* Básicamente es un '>='
+*/
 int valueGretOrEq(Value *n1, Value *n2)
 {
-  if (n1 -> type != INT && n1 -> type != FLOAT) die("sumValue llamado con nodos incorrectos");
+  if (n1 -> type != INT && n1 -> type != FLOAT) die("valueGretOrEq llamado con nodos incorrectos");
 
   if (n1 -> type == INT) {
     if (*n1 -> val_int >= *n2 -> val_int) return 1; else return 0;
@@ -406,15 +464,27 @@ int valueGretOrEq(Value *n1, Value *n2)
   return 0;
 }
 
+/*
+* Función que interpreta el nodo IF
+*/
 void interpretIf(Node *node)
 {
+  if (node == NULL) die("interpretIf llamado con NULL");
+  if (node -> subtype != IF) die("interpretIf llamado con nodo incorrecto");
+
   if (logicalOpEval(node -> op1)) {
     interpretNode(node -> op2);
   }
 }
 
+/*
+* Función que interpreta el nodo IF_ELSE
+*/
 void interpretIfElse(Node *node)
 {
+  if (node == NULL) die("interpretIfElse llamado con NULL");
+  if (node -> subtype != IF_ELSE) die("interpretIfElse llamado con nodo incorrecto");
+
   if (logicalOpEval(node -> op1)) {
     interpretNode(node -> op2);
   } else {
@@ -422,33 +492,59 @@ void interpretIfElse(Node *node)
   }
 }
 
+/*
+* Función que interpreta el nodo WHILE
+*/
 void interpretWhile(Node *node)
 {
+  if (node == NULL) die("interpretWhile llamado con NULL");
+  if (node -> subtype != WHILE) die("interpretWhile llamado con nodo incorrecto");
+
   while (logicalOpEval(node -> op1)) {
     // Es un nodo BEGN_END y por eso lo llamamos con su op1
     interpretNode(node -> op2 -> op1);
   }
 }
 
+/*
+* Función que interpreta el nodo REPEAT
+*/
 void interpretRepeat(Node *node)
 {
+  if (node == NULL) die("interpretRepeat llamado con NULL");
+  if (node -> subtype != REPEAT) die("interpretRepeat llamado con nodo incorrecto");
+
   do {
     interpretNode(node -> op1);    
   } while (logicalOpEval(node -> op2));
 }
 
+/*
+* Función que interpreta el nodo FOR
+*/
 void interpretFor(Node *node)
 {
+  if (node == NULL) die("interpretFor llamado con NULL");
+  if (node -> subtype != FOR) die("interpretFor llamado con nodo incorrecto");
+
+  // Asignamos a la variable apuntada por FOR el valor del op1
   valueAssign(&symbolTableGet(&symbolRoot, node -> name) -> value, arithOpEval(node -> op1)); 
 
+  // Revisamos que la condición se cumpla y realizamos la operación
   while (valueEqual(symbolTableGet(&symbolRoot, node -> name) -> value, arithOpEval(node -> op2)) != 1) {
     interpretNode(node -> op4);
     valueAssign(&symbolTableGet(&symbolRoot, node->name) -> value, valueSum(symbolTableGet(&symbolRoot, node -> name) -> value, arithOpEval(node->op3)));
   } 
+
+  // Regresamos su valor anterior a la variable
 }
 
+/*
+* Función que evalua las operaciones aritméticas
+*/
 Value* arithOpEval(Node *node)
 {
+  if (node == NULL) die("Mandado a llamar arithOpEval con NULL");
   if (node -> type != T_ARITHMETIC_OP && node -> type != T_CONSTANT && node -> type != T_VARIABLE) die("Expresión incorrecta como argumento a arithOpEval");
 
   switch (node -> subtype) {
@@ -478,8 +574,12 @@ Value* arithOpEval(Node *node)
   return NULL;
 }
 
+/*
+* Función que evalua las operaciones lógicas
+*/
 int logicalOpEval(Node *node)
 {
+  if (node == NULL) die("Mandado a llamar logicalOpEval con NULL");
   if (node -> type != T_LOGICAL_OP) die("Expresión incorrecta para evaluar en logicalOpEval");
 
   switch (node -> subtype) {
@@ -506,19 +606,26 @@ int logicalOpEval(Node *node)
   return 0;
 }
 
+/*
+* Función que asigna un Value a otro
+*/
 void valueAssign(Value **var, Value *expr)
 {
+  if (var == NULL || *var == NULL || expr == NULL) die("Valores nulos pasados a valueAssign");
   if ((*var) -> type != expr -> type) die("Asignación incorrecta en valueAssign");
+
   Value *tmp = *var;
-
   *var = expr;
-
   free(tmp);
 }
 
+/*
+* Función que 'corre' el programa. Dependiendo del subtipo de cada nodo llama a la función 'interpret*' correspondiente
+* Es recursiva y termina cuando ya no hayan más instrucciones
+*/
 void interpretNode(Node *node)
 {
-  if (node == NULL) return;
+  if (node == NULL) die("Llamado a interpretNode con NULL");
 
   switch (node -> subtype) {
     case ASSIGN:
@@ -553,7 +660,7 @@ void interpretNode(Node *node)
   if (node -> next != NULL) interpretNode(node -> next);
 }
 
-// Función personalizada de yyerror, para que siempre se llame la función personalizada die
+// Función personalizada de yyerror, para que siempre se llame la función personalizada die_line
 int yyerror(char const *s)
 {
   die_line(s);

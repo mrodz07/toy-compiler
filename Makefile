@@ -35,7 +35,7 @@ output: parser.tab.c lex.yy.c
 parser.tab.c: parser.y
 	bison $(BISON_FLAGS) parser.y
 
-lex.yy.c: lexer.lex
+lex.yy.c: lexer.lex functions.c functions.h
 	flex lexer.lex
 
 .PHONY: clean run

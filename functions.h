@@ -60,7 +60,7 @@ int yyerror(char const *s);
 // Funciones para mandar errores y mensajes
 void die(const char *s);
 void die_line(const char *s);
-void msg(const char *s);
+void msg_warning(const char *s);
 
 // Funciones para tablas de símbolos
 Node* symbolTableGet(Node **st, const char *name);
