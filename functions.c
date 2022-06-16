@@ -527,16 +527,32 @@ void interpretFor(Node *node)
   if (node == NULL) die("interpretFor llamado con NULL");
   if (node -> subtype != FOR) die("interpretFor llamado con nodo incorrecto");
 
+  int int_tmp;
+  double float_tmp;
+  Node *var = symbolTableGet(&symbolRoot, node -> name); 
+
+  // Guardamos el valor de la variable para luego restaurarlo
+  if (var -> subtype == INT) {
+    int_tmp = *var -> value -> val_int;
+  } else {
+    float_tmp = *var -> value -> val_float;
+  }
+
   // Asignamos a la variable apuntada por FOR el valor del op1
-  valueAssign(&symbolTableGet(&symbolRoot, node -> name) -> value, arithOpEval(node -> op1)); 
+  valueAssign(&var -> value, arithOpEval(node -> op1)); 
 
   // Revisamos que la condición se cumpla y realizamos la operación
-  while (valueEqual(symbolTableGet(&symbolRoot, node -> name) -> value, arithOpEval(node -> op2)) != 1) {
+  while (valueEqual(var -> value, arithOpEval(node -> op2)) != 1) {
     interpretNode(node -> op4);
-    valueAssign(&symbolTableGet(&symbolRoot, node->name) -> value, valueSum(symbolTableGet(&symbolRoot, node -> name) -> value, arithOpEval(node->op3)));
+    valueAssign(&var -> value, valueSum(var -> value, arithOpEval(node->op3)));
   } 
 
   // Regresamos su valor anterior a la variable
+  if (var -> subtype == INT) {
+    valueAssign(&var -> value, valueNew(INT, int_tmp, 0));
+  } else {
+    valueAssign(&var -> value, valueNew(FLOAT, 0, float_tmp));
+  }
 }
 
 /*
