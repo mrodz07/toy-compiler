@@ -57,22 +57,31 @@ extern FILE *yyin;
 extern int yylineno;
 int yyerror(char const *s);
 
-// Declaración de funciones hechas por mí
+// Funciones para mandar errores y mensajes
 void die(const char *s);
-void addNodeToSymbolTable(Node **st, Node *n);
-void printTree(Node *node, int indent, int step);
-void printSymbolTable(Node *st);
-int getCommonType(int t1, int t2);
-int getCommonSubtype(int s1, int s2);
-int treeGetType(Node *n);
-void stmt_interpret(Node *node);
+void die_line(const char *s);
 void msg(const char *s);
 
+// Funciones para tablas de símbolos
+void addNodeToSymbolTable(Node **st, Node *n);
+void printSymbolTable(Node *st);
+
+// Funciones para el árbol sintáctico
+void printTree(Node *node, int indent, int step);
+int treeGetType(Node *n);
+
+// Funciones para comprobar tipos de los nodos
+int getCommonType(int t1, int t2);
+int getCommonSubtype(int s1, int s2);
+
 // Funciones para interpretar el arbol
+void stmt_interpret(Node *node);
 void stmt_readInt(Node *symb);
 void stmt_readFloat(Node *symb);
 void valuePrint(Value *val);
 void stmt_if(Node *node);
+
+// Funciones para interpretar las operaciones lógicas y aritméticas: +, -, *, /, <, >, >=, <=
 int expression_eval(Node *node);
 int lestnValues(Value *n1, Value *n2);
 int gretnValues(Value *n1, Value *n2);
@@ -81,7 +90,7 @@ int lessoreqValues(Value *n1, Value *n2);
 int gretoreqValues(Value *n1, Value *n2);
 void valueAssign(Value **var, Value *expr);
 
-// Declaración de funciones hechas por mí que regresan estructuras
+// Funciones que regresan estructuras
 Node* newNode(int type, int subtype, char *name, Value *value, Node *next, Node *op1, Node *op2, Node *op3, Node *op4);
 Node* getSymbolTableNode(Node **st, const char *name);
 Value* newValue(int type, int val_int, double val_float);
@@ -90,7 +99,3 @@ Value* sumValues(Value *n1, Value *n2);
 Value* resValues(Value *n1, Value *n2);
 Value* divValues(Value *n1, Value *n2);
 Value* mulValues(Value *n1, Value *n2);
-
-// Declaración de apuntadores que servirán para la ejecución del programa
-Node *treeRoot = NULL;
-Node *symbolRoot = NULL;

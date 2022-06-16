@@ -3,8 +3,18 @@
 */
 #include "functions.h"
 
+// Declaración de apuntadores que servirán para la tabla de símbolos principal
+Node *treeRoot = NULL;
+Node *symbolRoot = NULL;
+
 // Función que termina la ejecución del programa. Imprime un código, linea y el número del token que falló
 void die(const char *s) 
+{
+  fprintf(stderr, "Error: %s\n", s);
+  exit(1);
+}
+
+void die_line(const char *s) 
 {
   fprintf(stderr, "Error: %s en linea %d con 'token' %s\n", s, yylineno, yytext);
   exit(1);
@@ -551,7 +561,7 @@ void stmt_interpret(Node *node)
 // Función personalizada de yyerror, para que siempre se llame la función personalizada die
 int yyerror(char const *s)
 {
-  die(s);
+  die_line(s);
   return 1;
 }
 
