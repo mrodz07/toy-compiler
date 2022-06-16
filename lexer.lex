@@ -67,7 +67,7 @@ ID  [a-zA-Z_$]+{DIGIT}*[a-zA-Z_$0-9]*
               return NUM_INT;
             }
 ~{NUM_FLT}  {
-              yylval.val_float = strtod(yytext+1, tmp, 10) * -1; // Lo mismo que en el num_int negativo
+              yylval.val_float = strtod(yytext+1, tmp) * -1; // Lo mismo que en el num_int negativo
               return NUM_FLT;
             }
 [ \n\t]     {                 }
