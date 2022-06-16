@@ -12,7 +12,7 @@
   struct node *ptn;
 }
 
-%token BEGN PROGRM END ARROW THEN VAR INT FLOAT PRNTH1 PRNTH2 ELSE UNTIL STEP DO ERR COLON READ SUM RES MUL DIV LESTN GRETN EQUALS LESSOREQ GRETOREQ SEMCLN ASSIGN IF_ELSE IF WHILE FOR PRINT BEGN_END REPEAT
+%token BEGN PROGRM END FUN TYPE COMMA ARROW THEN VAR INT FLOAT PRNTH1 PRNTH2 ELSE UNTIL STEP DO ERR COLON READ SUM RES MUL DIV LESTN GRETN EQUALS LESSOREQ GRETOREQ SEMCLN ASSIGN IF_ELSE IF WHILE FOR PRINT BEGN_END REPEAT
 %token<val_int> NUM_INT
 %token<val_float> NUM_FLT
 %token<nombre> ID
@@ -28,7 +28,7 @@
 
 %%
 
-prog: PROGRM ID opt_decls BEGN opt_stmts END { treeRoot = $5; /* La raíz del árbol será el valor de retorno de opt_stmts*/ }
+prog: PROGRM ID opt_decls opt_fun_decls BEGN opt_stmts END { treeRoot = $6; /* La raíz del árbol será el valor de retorno de opt_stmts*/ }
     ;
 
 opt_decls: decl_lst 
@@ -45,6 +45,28 @@ decl: VAR ID COLON type { symbolTableAddNode(&symbolRoot, nodeNew(T_VARIABLE, $4
 type: INT   { $$ = INT; }
     | FLOAT { $$ = FLOAT; }
     ;
+
+opt_fun_decls: fun_decls
+             |
+             ;
+
+fun_decls: fun_decls fun_decl
+         | fun_decl
+         ;
+
+fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON TYPE opt_decls BEGN opt_stmts END
+        | FUN ID PRNTH1 oparams PRNTH2 COLON TYPE SEMCLN
+        ;
+
+oparams: params
+       |
+       ;
+
+params: param COMMA params
+       | param
+       ;
+
+param: ID COLON type 
 
 stmt: ID ARROW expr {
                       // La condicional que aparece en esta regla junto con expr, term, factor y expression sirve para comprobar que los tipos de argumentos (variable y expresión en este caso) sean iguales
@@ -112,7 +134,16 @@ factor: PRNTH1 expr PRNTH2 { $$ = $2; }
       | ID { $$ = symbolTableGet(&symbolRoot, $1); }
       | NUM_INT { $$ = nodeNew(T_CONSTANT, INT, NULL, valueNew(INT, $1, 0), NULL, NULL, NULL, NULL, NULL); }
       | NUM_FLT { $$ = nodeNew(T_CONSTANT, FLOAT, NULL, valueNew(FLOAT, 0, $1), NULL, NULL, NULL, NULL, NULL); }
+      | ID PRNTH1 opt_exprs PRNTH2 { printf("%s\n", $1); }
       ;
+
+opt_exprs: expr_lst
+         |
+         ;
+
+expr_lst: expr COMMA expr_lst
+        | expr
+        ;
 
 expression: expr LESTN expr     {
                                   if (subtypeGetCommon(treeGetType($1), treeGetType($3)) != -1) {
