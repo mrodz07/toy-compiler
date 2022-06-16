@@ -1,44 +1,44 @@
 CC_FLAGS = -Wall -Wextra -Wpedantic -lfl -lm
 BISON_FLAGS = -d -Wcounterexamples
 
-default: a.out
+default: output
 
 test_all: test1 test2 test3 test4 test5 test6 test7 test8
 
 test1: default
-	./a.out tests/prog1.txt
+	./output tests/prog1.txt
 
 test2: default
-	./a.out tests/prog2.txt
+	./output tests/prog2.txt
 
 test3: default
-	./a.out tests/prog3.txt
+	./output tests/prog3.txt
 
 test4: default
-	./a.out tests/prog4.txt
+	./output tests/prog4.txt
 
 test5: default
-	./a.out tests/prog5.txt
+	./output tests/prog5.txt
 
 test6: default
-	./a.out tests/prog6.txt
+	./output tests/prog6.txt
 
 test7: default
-	./a.out tests/prog7.txt
+	./output tests/prog7.txt
 
 test8: default
-	./a.out tests/prog8.txt
+	./output tests/prog8.txt
 
-a.out: reconocedor.tab.c lex.yy.c
-	cc $(CC_FLAGS) reconocedor.tab.c lex.yy.c
+output: parser.tab.c lex.yy.c
+	cc $(CC_FLAGS) parser.tab.c lex.yy.c -o output
 
-reconocedor.tab.c: reconocedor.y
-	bison $(BISON_FLAGS) reconocedor.y
+parser.tab.c: parser.y
+	bison $(BISON_FLAGS) parser.y
 
-lex.yy.c: reconocedor.lex
-	flex reconocedor.lex
+lex.yy.c: lexer.lex
+	flex lexer.lex
 
 .PHONY: clean run
 
 clean:
-	rm -rf *.o *.out lex.yy.c reconocedor.tab.c reconocedor.tab.h
+	rm -rf output *.out lex.yy.c *.tab.c *.tab.h
