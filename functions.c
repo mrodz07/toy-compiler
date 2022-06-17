@@ -7,6 +7,7 @@
 // Declaración de apuntadores que servirán para la tabla de símbolos principal
 Node *treeRoot = NULL;
 Node *symbolRoot = NULL;
+Node *currentSymbolTable = NULL;
 Node *funcRoot = NULL;
 int funcArgCounter = 0;
 
@@ -39,7 +40,7 @@ void treePrint(Node *node, int indent, int step)
   if (indent < 1) die("La identación no puede ser negativa en treePrint");
   if (node == NULL) die("Nodo negativo como argumento a treePrint");
 
-  //printf("call %d\naddress: %p\ntype: %d\nsubtype: %d\nnext: %p\nop1: %p\nop2: %p\nop3: %p\nop4: %p\n", indent, (void *)node, node -> type, node -> subtype, (void *)node -> next, (void *)node -> op1, (void *)node -> op2, (void *)node -> op3, (void *)node -> op4);
+  printf("call %d\naddress: %p\ntype: %d\nsubtype: %d\nnext: %p\nop1: %p\nop2: %p\nop3: %p\nop4: %p\n", indent, (void *)node, node -> type, node -> subtype, (void *)node -> next, (void *)node -> op1, (void *)node -> op2, (void *)node -> op3, (void *)node -> op4);
   switch (node -> type) {
     case T_SENTENCE:
       switch (node -> subtype) {

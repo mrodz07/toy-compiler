@@ -28,7 +28,7 @@
 
 %%
 
-prog: PROGRM ID opt_decls opt_fun_decls BEGN opt_stmts END { treeRoot = $6; /* La raíz del árbol será el valor de retorno de opt_stmts*/ }
+prog: PROGRM ID opt_decls { symbolRoot = currentSymbolTable; currentSymbolTable = NULL; } opt_fun_decls BEGN opt_stmts END { treeRoot = $7; /* La raíz del árbol será el valor de retorno de opt_stmts*/ }
     ;
 
 opt_decls: decl_lst 
@@ -39,7 +39,7 @@ decl_lst: decl SEMCLN decl_lst
         | decl
         ;
 
-decl: VAR ID COLON type { symbolTableAddNode(&symbolRoot, nodeNew(T_VARIABLE, $4, $2, valueNew($4, 0, 0), NULL, NULL, NULL, NULL, NULL));  /* Agregamos los nodos al apuntador de tabla de símbolos hecho al inicio del programa */ }
+decl: VAR ID COLON type { symbolTableAddNode(&currentSymbolTable, nodeNew(T_VARIABLE, $4, $2, valueNew($4, 0, 0), NULL, NULL, NULL, NULL, NULL));  /* Agregamos los nodos al apuntador de tabla de símbolos hecho al inicio del programa */ }
     ;
 
 type: INT   { $$ = INT; }
@@ -54,7 +54,7 @@ fun_decls: fun_decls fun_decl
          | fun_decl
          ;
 
-fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls BEGN opt_stmts END { funcTableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, valueNew(INT, funcArgCounter, 0), NULL, $4, NULL, $10, NULL)); /* Cambiar primer NULL por $8 */ }
+fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls BEGN opt_stmts END { funcTableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, currentSymbolTable, $4, $10, NULL, NULL)); currentSymbolTable = NULL; }
         | FUN ID PRNTH1 oparams PRNTH2 COLON type SEMCLN
         ;
 
