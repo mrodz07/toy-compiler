@@ -7,6 +7,8 @@
 // Declaración de apuntadores que servirán para la tabla de símbolos principal
 Node *treeRoot = NULL;
 Node *symbolRoot = NULL;
+Node *funcRoot = NULL;
+int funcArgCounter = 0;
 
 // Función que termina la ejecución del programa e imprime un mensaje personalizado
 void die(const char *s) 
@@ -34,9 +36,10 @@ void msg_warning(const char *s)
 */
 void treePrint(Node *node, int indent, int step)
 {
-  if (indent < 1) die("La identación no puede ser negativo en treePrint");
+  if (indent < 1) die("La identación no puede ser negativa en treePrint");
   if (node == NULL) die("Nodo negativo como argumento a treePrint");
 
+  //printf("call %d\naddress: %p\ntype: %d\nsubtype: %d\nnext: %p\nop1: %p\nop2: %p\nop3: %p\nop4: %p\n", indent, (void *)node, node -> type, node -> subtype, (void *)node -> next, (void *)node -> op1, (void *)node -> op2, (void *)node -> op3, (void *)node -> op4);
   switch (node -> type) {
     case T_SENTENCE:
       switch (node -> subtype) {
@@ -66,6 +69,12 @@ void treePrint(Node *node, int indent, int step)
           break;
         case BEGN_END:
           printf("%*cRead: T_SENTENCE\tsubtype: BEGN_END\n", indent, ' ');
+          break;
+        case FUN_CALL:
+          printf("%*cRead: T_SENTENCE\tsubtype: CALL\tname: %s\n", indent, ' ', node->name);
+          break;
+        default:
+          die("Recibido subtipo desconocido en nodo de tipo T_SENTENCE dentro de treePrint");
           break;
       }
       break;
@@ -124,6 +133,9 @@ void treePrint(Node *node, int indent, int step)
           break;
       }
       break;
+    default:
+      die("Recibido tipo de nodo desconocido en treePrint\n");
+      break;
   }
   if (node -> op1 != NULL) treePrint(node -> op1, indent+step, step);
   if (node -> op2 != NULL) treePrint(node -> op2, indent+step, step);
@@ -172,6 +184,22 @@ Node* symbolTableGet(Node **st, const char *name)
   return NULL;
 }
 
+Node* funcTableGet(Node **ft, const char *name)
+{
+  if (ft == NULL) die("El argumento ft pasado a funcTableGet es NULL");
+  if (*ft == NULL) die("El argumento ft pasado a funcTableGet apunta a NULL");
+
+  Node *tmp = *ft; 
+  while (tmp != NULL) {
+    if (strcmp(tmp -> name, name) == 0)
+      return tmp;
+    tmp = tmp -> next;
+  }
+
+  die("Función no encontrada en la tabla de funciones");
+  return NULL;
+}
+
 // Crea un nuevo nodo y regresa un apuntador a este
 Node* nodeNew(int type, int subtype, char *name, Value *value, Node *next, Node *op1, Node *op2, Node *op3, Node *op4)
 {
@@ -210,6 +238,25 @@ void symbolTableAddNode(Node **st, Node *n)
     *st = n;
   } else {
     tmp = *st;
+    while (tmp -> next != NULL) {
+      tmp = tmp -> next; 
+    }
+    tmp -> next = n;
+  }
+}
+
+void funcTableAddNode(Node **ft, Node *n)
+{
+  if (ft == NULL) die("ft nulo como argumento a funcTableAddNode");
+  if (n == NULL) die("Node nulo como argumento a funcTableAddNode");
+  if (n -> type != T_FUNCTION) die("Nodo incorrento como argumento a funcTableAddNode");
+
+  Node *tmp;
+
+  if (*ft == NULL) {
+    *ft = n;
+  } else {
+    tmp = *ft;
     while (tmp -> next != NULL) {
       tmp = tmp -> next; 
     }

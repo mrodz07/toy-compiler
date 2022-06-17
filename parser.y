@@ -12,11 +12,11 @@
   struct node *ptn;
 }
 
-%token BEGN PROGRM END FUN TYPE COMMA ARROW THEN VAR INT FLOAT PRNTH1 PRNTH2 ELSE UNTIL STEP DO ERR COLON READ SUM RES MUL DIV LESTN GRETN EQUALS LESSOREQ GRETOREQ SEMCLN ASSIGN IF_ELSE IF WHILE FOR PRINT BEGN_END REPEAT
+%token BEGN PROGRM END FUN COMMA ARROW THEN VAR INT FLOAT PRNTH1 PRNTH2 ELSE UNTIL STEP DO ERR COLON READ SUM RES MUL DIV LESTN GRETN EQUALS LESSOREQ GRETOREQ SEMCLN ASSIGN IF_ELSE IF WHILE FOR PRINT BEGN_END RETURN FUN_CALL REPEAT
 %token<val_int> NUM_INT
 %token<val_float> NUM_FLT
 %token<nombre> ID
-%type<ptn> stmt expr factor expression opt_stmts stmt_lst term decl
+%type<ptn> stmt expr factor expression opt_stmts stmt_lst term decl oparams params param opt_exprs expr_lst
 %type<val_int> type
 %start prog
 
@@ -54,19 +54,19 @@ fun_decls: fun_decls fun_decl
          | fun_decl
          ;
 
-fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON TYPE opt_decls BEGN opt_stmts END
-        | FUN ID PRNTH1 oparams PRNTH2 COLON TYPE SEMCLN
+fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls BEGN opt_stmts END { funcTableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, valueNew(INT, funcArgCounter, 0), NULL, $4, NULL, $10, NULL)); /* Cambiar primer NULL por $8 */ }
+        | FUN ID PRNTH1 oparams PRNTH2 COLON type SEMCLN
         ;
 
 oparams: params
-       |
+       |        { $$ = NULL; }
        ;
 
-params: param COMMA params
-       | param
+params: param COMMA params { $1 -> next = $3; $$ = $1; }
+       | param { $1 -> next = NULL; $$ = $1; }
        ;
 
-param: ID COLON type 
+param: ID COLON type { $$ = nodeNew(T_VARIABLE, $3, NULL, NULL, NULL, NULL, NULL, NULL, NULL); }
 
 stmt: ID ARROW expr {
                       // La condicional que aparece en esta regla junto con expr, term, factor y expression sirve para comprobar que los tipos de argumentos (variable y expresión en este caso) sean iguales
@@ -83,6 +83,7 @@ stmt: ID ARROW expr {
     | FOR ID ARROW expr UNTIL expr STEP expr DO stmt { $$ = nodeNew(T_SENTENCE, FOR, $2, NULL, NULL, $4, $6, $8, $10); /* Se guarda el ID en el 'name' para su futura modificación*/ }
     | READ ID { $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, symbolTableGet(&symbolRoot, $2), NULL, NULL, NULL); }
     | PRINT expr { $$ = nodeNew(T_SENTENCE, PRINT, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
+    | RETURN expr { $$ = nodeNew(T_SENTENCE, RETURN, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
     | BEGN opt_stmts END { $$ = nodeNew(T_SENTENCE, BEGN_END, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
     ;
 
@@ -134,15 +135,15 @@ factor: PRNTH1 expr PRNTH2 { $$ = $2; }
       | ID { $$ = symbolTableGet(&symbolRoot, $1); }
       | NUM_INT { $$ = nodeNew(T_CONSTANT, INT, NULL, valueNew(INT, $1, 0), NULL, NULL, NULL, NULL, NULL); }
       | NUM_FLT { $$ = nodeNew(T_CONSTANT, FLOAT, NULL, valueNew(FLOAT, 0, $1), NULL, NULL, NULL, NULL, NULL); }
-      | ID PRNTH1 opt_exprs PRNTH2 { printf("%s\n", $1); }
+      | ID PRNTH1 opt_exprs PRNTH2 { $$ = nodeNew(T_SENTENCE, FUN_CALL, $1, NULL, NULL, $3, NULL, NULL, NULL); }
       ;
 
 opt_exprs: expr_lst
-         |
+         |          { $$ = NULL;}
          ;
 
-expr_lst: expr COMMA expr_lst
-        | expr
+expr_lst: expr COMMA expr_lst { $1 -> next = $3; $$ = $1; }
+        | expr { $1 -> next = NULL; $$ = $1; }
         ;
 
 expression: expr LESTN expr     {

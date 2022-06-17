@@ -22,7 +22,6 @@ ID  [a-zA-Z_$]+{DIGIT}*[a-zA-Z_$0-9]*
 "begin"     { return BEGN;    }
 "end"       { return END;     }
 "fun"       { return FUN;     }
-"tipo"      { return TYPE;    }
 "<-"        { return ARROW;   }
 "("         { return PRNTH1;  }
 ")"         { return PRNTH2;  }
@@ -34,6 +33,7 @@ ID  [a-zA-Z_$]+{DIGIT}*[a-zA-Z_$0-9]*
 "read"      { return READ;    }
 "print"     { return PRINT;   }
 "until"     { return UNTIL;   }
+"return"    { return RETURN;  }
 "step"      { return STEP;    }
 "do"        { return DO;      }
 "then"      { return THEN;    }

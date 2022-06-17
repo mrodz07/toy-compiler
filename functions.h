@@ -19,6 +19,7 @@ typedef enum {
   T_VARIABLE,
   T_CONSTANT,
   T_ARITHMETIC_OP,
+  T_FUNCTION,
   T_LOGICAL_OP
 } tree_type;
 
@@ -66,6 +67,10 @@ void msg_warning(const char *s);
 Node* symbolTableGet(Node **st, const char *name);
 void symbolTableAddNode(Node **st, Node *n);
 void symbolTablePrint(Node *st);
+
+// Funciones para gestionar la tabla de funciones
+void funcTableAddNode(Node **ft, Node *n);
+Node* funcTableGet(Node **ft, const char *name);
 
 // Funciones para el árbol sintáctico
 void treePrint(Node *node, int indent, int step);
