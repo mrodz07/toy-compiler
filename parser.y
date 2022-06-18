@@ -54,41 +54,35 @@ fun_decls: fun_decls fun_decl
          | fun_decl
          ;
 
-fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls BEGN opt_stmts END
+fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls 
         { 
-          if (funcRoot != NULL) {
-            if (tableGet(&funcRoot, $2) == NULL) {
-              tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, currentSymbolTable, currentParamTable, $10, NULL));
-              currentSymbolTable = NULL;
-              currentParamTable = NULL;
-            } else if (tableGet(&funcRoot, $2) != NULL && tableGet(&funcRoot, $2) -> op3 == NULL) {
-              tableGet(&funcRoot, $2) -> op3 = $10;
+          if (funcRoot != NULL && tableGet(&funcRoot, $2) != NULL) {
+            if (tableGet(&funcRoot, $2) -> op1 == NULL) { 
+              tableGet(&funcRoot, $2) -> op1 = currentParamTable;
             } else {
               die_line("Múltiple definición de función");
             }
           } else {
-              tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, currentSymbolTable, currentParamTable, $10, NULL));
-              currentSymbolTable = NULL;
-              currentParamTable = NULL;
-          }
-        }
-        | FUN ID PRNTH1 oparams PRNTH2 COLON type SEMCLN
-        {
-          if (funcRoot != NULL) { 
-            if (tableGet(&funcRoot, $2) == NULL) {
-              tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, NULL, currentParamTable, NULL, NULL));
-              currentSymbolTable = NULL;
-              currentParamTable = NULL;
-            } else {
-              die_line("Múltiple definición de función");
-            }
-          } else {
-            tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, NULL, currentParamTable, NULL, NULL));
+            tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, currentSymbolTable, currentParamTable, NULL, NULL));
+            currentFunc = tableGet(&funcRoot, $2);
             currentSymbolTable = NULL;
             currentParamTable = NULL;
           }
         }
+BEGN opt_stmts END
+        {
+          tableGet(&funcRoot, $2) -> op3 = $11;
+        }
 
+        | FUN ID PRNTH1 oparams PRNTH2 COLON type SEMCLN
+        {
+          if (funcRoot != NULL && tableGet(&funcRoot, $2) != NULL) {
+            die_line("Múltiple definición de función");
+          } else {
+            tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, NULL, currentParamTable, NULL, NULL));
+            currentParamTable = NULL;
+          }
+        }
         ;
 
 oparams: params
@@ -118,7 +112,7 @@ stmt: ID ARROW expr {
                 if (tableGet(&symbolRoot, $2) != NULL) {
                   $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, tableGet(&symbolRoot, $2), NULL, NULL, NULL);
                 } else {
-                  die("ID no encontrada en stmt");
+                  die_line("ID no encontrada en stmt");
                 }
               }
     | PRINT expr { $$ = nodeNew(T_SENTENCE, PRINT, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
@@ -175,7 +169,7 @@ factor: PRNTH1 expr PRNTH2 { $$ = $2; }
               if (tableGet(&symbolRoot, $1) != NULL) {
                 $$ = tableGet(&symbolRoot, $1);
               } else {
-                die("ID no encontrada en factor");
+                die_line("ID no encontrada en factor");
               }
            }
       | NUM_INT { $$ = nodeNew(T_CONSTANT, INT, NULL, valueNew(INT, $1, 0), NULL, NULL, NULL, NULL, NULL); }

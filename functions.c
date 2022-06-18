@@ -10,6 +10,7 @@ Node *symbolRoot = NULL;
 Node *currentSymbolTable = NULL;
 Node *currentParamTable = NULL;
 Node *funcRoot = NULL;
+Node *currentFunc = NULL;
 int funcArgCounter = 0;
 
 // Función que termina la ejecución del programa e imprime un mensaje personalizado
