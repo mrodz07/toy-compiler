@@ -63,14 +63,10 @@ void die(const char *s);
 void die_line(const char *s);
 void msg_warning(const char *s);
 
-// Funciones para tablas de símbolos
-Node* symbolTableGet(Node **st, const char *name);
-void symbolTableAddNode(Node **st, Node *n);
-void symbolTablePrint(Node *st);
-
-// Funciones para gestionar la tabla de funciones
-void funcTableAddNode(Node **ft, Node *n);
-Node* funcTableGet(Node **ft, const char *name);
+// Funciones para gestionar tablas de símbolos y funciones
+Node* tableGet(Node **t, const char *name);
+void tableAddNode(Node **t, Node *n);
+void tablePrint(Node *t);
 
 // Funciones para el árbol sintáctico
 void treePrint(Node *node, int indent, int step);

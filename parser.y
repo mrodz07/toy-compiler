@@ -16,7 +16,7 @@
 %token<val_int> NUM_INT
 %token<val_float> NUM_FLT
 %token<nombre> ID
-%type<ptn> stmt expr factor expression opt_stmts stmt_lst term decl oparams params param opt_exprs expr_lst
+%type<ptn> stmt expr factor expression opt_stmts stmt_lst term decl opt_exprs expr_lst
 %type<val_int> type
 %start prog
 
@@ -39,7 +39,7 @@ decl_lst: decl SEMCLN decl_lst
         | decl
         ;
 
-decl: VAR ID COLON type { symbolTableAddNode(&currentSymbolTable, nodeNew(T_VARIABLE, $4, $2, valueNew($4, 0, 0), NULL, NULL, NULL, NULL, NULL));  /* Agregamos los nodos al apuntador de tabla de símbolos hecho al inicio del programa */ }
+decl: VAR ID COLON type { tableAddNode(&currentSymbolTable, nodeNew(T_VARIABLE, $4, $2, valueNew($4, 0, 0), NULL, NULL, NULL, NULL, NULL));  /* Agregamos los nodos al apuntador de tabla de símbolos hecho al inicio del programa */ }
     ;
 
 type: INT   { $$ = INT; }
@@ -54,24 +54,25 @@ fun_decls: fun_decls fun_decl
          | fun_decl
          ;
 
-fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls BEGN opt_stmts END { funcTableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, currentSymbolTable, $4, $10, NULL, NULL)); currentSymbolTable = NULL; }
-        | FUN ID PRNTH1 oparams PRNTH2 COLON type SEMCLN
+fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls BEGN opt_stmts END { tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, currentSymbolTable, currentParamTable, $10, NULL)); currentSymbolTable = NULL; currentParamTable = NULL; }
+        | FUN ID PRNTH1 oparams PRNTH2 COLON type SEMCLN { tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, NULL, currentParamTable, NULL, NULL)); currentSymbolTable = NULL; currentParamTable = NULL; }
+
         ;
 
 oparams: params
-       |        { $$ = NULL; }
+       |
        ;
 
-params: param COMMA params { $1 -> next = $3; $$ = $1; }
-       | param { $1 -> next = NULL; $$ = $1; }
+params: param COMMA params
+       | param
        ;
 
-param: ID COLON type { $$ = nodeNew(T_VARIABLE, $3, NULL, NULL, NULL, NULL, NULL, NULL, NULL); }
+param: ID COLON type { tableAddNode(&currentParamTable, nodeNew(T_VARIABLE, $3, $1, valueNew($3, 0, 0), NULL, NULL, NULL, NULL, NULL)); }
 
 stmt: ID ARROW expr {
                       // La condicional que aparece en esta regla junto con expr, term, factor y expression sirve para comprobar que los tipos de argumentos (variable y expresión en este caso) sean iguales
-                      if (subtypeGetCommon(symbolTableGet(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1 ) { 
-                        $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, symbolTableGet(&symbolRoot, $1), $3, NULL, NULL); 
+                      if (subtypeGetCommon(tableGet(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1 ) { 
+                        $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&symbolRoot, $1), $3, NULL, NULL); 
                       } else { 
                         die_line("Los 'subtypes' son distintos en ASSIGN"); 
                       }
@@ -81,7 +82,7 @@ stmt: ID ARROW expr {
     | WHILE PRNTH1 expression PRNTH2 stmt { $$ = nodeNew(T_SENTENCE, WHILE, NULL, NULL, NULL, $3, $5, NULL, NULL); }
     | REPEAT stmt UNTIL PRNTH1 expression PRNTH2 { $$ = nodeNew(T_SENTENCE, REPEAT, NULL, NULL, NULL, $2, $5, NULL, NULL); }
     | FOR ID ARROW expr UNTIL expr STEP expr DO stmt { $$ = nodeNew(T_SENTENCE, FOR, $2, NULL, NULL, $4, $6, $8, $10); /* Se guarda el ID en el 'name' para su futura modificación*/ }
-    | READ ID { $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, symbolTableGet(&symbolRoot, $2), NULL, NULL, NULL); }
+    | READ ID { $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, tableGet(&symbolRoot, $2), NULL, NULL, NULL); }
     | PRINT expr { $$ = nodeNew(T_SENTENCE, PRINT, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
     | RETURN expr { $$ = nodeNew(T_SENTENCE, RETURN, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
     | BEGN opt_stmts END { $$ = nodeNew(T_SENTENCE, BEGN_END, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
@@ -132,7 +133,7 @@ term: term MUL factor {
     ;
 
 factor: PRNTH1 expr PRNTH2 { $$ = $2; }
-      | ID { $$ = symbolTableGet(&symbolRoot, $1); }
+      | ID { $$ = tableGet(&symbolRoot, $1); }
       | NUM_INT { $$ = nodeNew(T_CONSTANT, INT, NULL, valueNew(INT, $1, 0), NULL, NULL, NULL, NULL, NULL); }
       | NUM_FLT { $$ = nodeNew(T_CONSTANT, FLOAT, NULL, valueNew(FLOAT, 0, $1), NULL, NULL, NULL, NULL, NULL); }
       | ID PRNTH1 opt_exprs PRNTH2 { $$ = nodeNew(T_SENTENCE, FUN_CALL, $1, NULL, NULL, $3, NULL, NULL, NULL); }

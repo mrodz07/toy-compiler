@@ -8,6 +8,7 @@
 Node *treeRoot = NULL;
 Node *symbolRoot = NULL;
 Node *currentSymbolTable = NULL;
+Node *currentParamTable = NULL;
 Node *funcRoot = NULL;
 int funcArgCounter = 0;
 
@@ -73,6 +74,9 @@ void treePrint(Node *node, int indent, int step)
           break;
         case FUN_CALL:
           printf("%*cRead: T_SENTENCE\tsubtype: CALL\tname: %s\n", indent, ' ', node->name);
+          break;
+        case RETURN:
+          printf("%*cRead: T_SENTENCE\tsubtype: RETURN\n", indent, ' ');
           break;
         default:
           die("Recibido subtipo desconocido en nodo de tipo T_SENTENCE dentro de treePrint");
@@ -147,19 +151,38 @@ void treePrint(Node *node, int indent, int step)
 }
 
 //Imprime la table de símbolos que es una lista ligada
-void symbolTablePrint(Node *st)
+void tablePrint(Node *t)
 {
-  if (st == NULL) die("Nodo nulo como argumento a symbolTablePrint");
+  if (t == NULL) die("Nodo nulo como argumento a tablePrint");
+  if (t -> type != T_FUNCTION && t -> type != T_VARIABLE) die("Tipo incorrecto como argumento a tablePrint");
 
   Node *tmp = malloc(sizeof(Node));
-  tmp = st;
+  tmp = t;
 
   while (tmp != NULL) {
-    if (tmp -> value -> type == INT) {
-      printf("nombre: %s, tipo: %d, valor: %d\n", tmp -> name, tmp -> type, *tmp -> value -> val_int);
-    }
-    else {
-      printf("nombre: %s, tipo: %d, valor: %.2f\n", tmp -> name, tmp -> type, *tmp -> value -> val_float);
+    switch (tmp -> type) {
+      case T_VARIABLE:
+        if (tmp -> subtype == INT) {
+          printf("nombre: %s, tipo: %d, valor: %d\n", tmp -> name, tmp -> type, *tmp -> value -> val_int);
+        } else {
+          printf("nombre: %s, tipo: %d, valor: %.2f\n", tmp -> name, tmp -> type, *tmp -> value -> val_float);
+        }
+        break;
+      case T_FUNCTION:
+        printf("nombre: %s, retorno: %d\n", tmp -> name, tmp -> type );
+        if (tmp -> op1 != NULL) {
+          printf("tabla de símbolos\n"); 
+          tablePrint(tmp -> op1);
+        }
+        if (tmp -> op2 != NULL) {
+          printf("parámetros\n");
+          tablePrint(tmp -> op2);
+        }
+        if (tmp -> op3 != NULL) {
+          printf("cuerpo de función\n");
+          treePrint(tmp -> op3, 1, 1);
+        }
+      break;
     }
     tmp = tmp -> next;
   }
@@ -169,12 +192,13 @@ void symbolTablePrint(Node *st)
 }
 
 // Busca en la table de símbolos la variable con el nombre especificado
-Node* symbolTableGet(Node **st, const char *name)
+Node* tableGet(Node **t, const char *name)
 {
-  if (st == NULL) die("El argumento st pasado a symbolTableGet es NULL");
-  if (*st == NULL) die("El argumento st pasado a symbolTableGet apunta a NULL");
+  if (t == NULL) die("El argumento t pasado a tableGet es NULL");
+  if (*t == NULL) die("El argumento t pasado a tableGet apunta a NULL");
+  if ((*t) -> type != T_VARIABLE && (*t) -> type != T_FUNCTION) die("El tipo de tabla pasado a tableGet es incorrecto");
 
-  Node *tmp = *st; 
+  Node *tmp = *t; 
   while (tmp != NULL) {
     if (strcmp(tmp -> name, name) == 0)
       return tmp;
@@ -182,22 +206,6 @@ Node* symbolTableGet(Node **st, const char *name)
   }
 
   die("Variable no encontrada en la tabla de símbolos");
-  return NULL;
-}
-
-Node* funcTableGet(Node **ft, const char *name)
-{
-  if (ft == NULL) die("El argumento ft pasado a funcTableGet es NULL");
-  if (*ft == NULL) die("El argumento ft pasado a funcTableGet apunta a NULL");
-
-  Node *tmp = *ft; 
-  while (tmp != NULL) {
-    if (strcmp(tmp -> name, name) == 0)
-      return tmp;
-    tmp = tmp -> next;
-  }
-
-  die("Función no encontrada en la tabla de funciones");
   return NULL;
 }
 
@@ -227,37 +235,18 @@ Node* nodeNew(int type, int subtype, char *name, Value *value, Node *next, Node 
 }
 
 // Añade el nodo que le mandamos a la table de símbolos, comprueba que sea de tipo variable para que no se agregue otro tipo de elemento a la tabla
-void symbolTableAddNode(Node **st, Node *n)
+void tableAddNode(Node **t, Node *n)
 {
-  if (st == NULL) die("st nulo como argumento a symbolTableAddNode");
-  if (n == NULL) die("Node nulo como argumento a symbolTableAddNode");
-  if (n -> type != T_VARIABLE) die("Nodo incorrento como argumento a symbolTableAddNode");
+  if (t == NULL) die("t nulo como argumento a tableAddNode");
+  if (n == NULL) die("Node nulo como argumento a tableAddNode");
+  if (n -> type != T_VARIABLE && n -> type != T_FUNCTION) die("Nodo incorrento como argumento a tableAddNode");
 
   Node *tmp;
 
-  if (*st == NULL) {
-    *st = n;
+  if (*t == NULL) {
+    *t = n;
   } else {
-    tmp = *st;
-    while (tmp -> next != NULL) {
-      tmp = tmp -> next; 
-    }
-    tmp -> next = n;
-  }
-}
-
-void funcTableAddNode(Node **ft, Node *n)
-{
-  if (ft == NULL) die("ft nulo como argumento a funcTableAddNode");
-  if (n == NULL) die("Node nulo como argumento a funcTableAddNode");
-  if (n -> type != T_FUNCTION) die("Nodo incorrento como argumento a funcTableAddNode");
-
-  Node *tmp;
-
-  if (*ft == NULL) {
-    *ft = n;
-  } else {
-    tmp = *ft;
+    tmp = *t;
     while (tmp -> next != NULL) {
       tmp = tmp -> next; 
     }
@@ -577,7 +566,7 @@ void interpretFor(Node *node)
 
   int int_tmp;
   double float_tmp;
-  Node *var = symbolTableGet(&symbolRoot, node -> name); 
+  Node *var = tableGet(&symbolRoot, node -> name); 
 
   // Guardamos el valor de la variable para luego restaurarlo
   if (var -> subtype == INT) {
@@ -748,12 +737,14 @@ int main(int argc, char *argv[])
 
   yyparse();
   printf("El programa es valido\n\n");
+  printf("Current symbol table\n");
   printf("Tabla de símbolos\n");
-  symbolTablePrint(symbolRoot);
+  tablePrint(symbolRoot);
   printf("\n");
   printf("Arbol sintáctico\n");
   treePrint(treeRoot, 1, 1);
   printf("\n");
+  tablePrint(funcRoot);
   printf("Program execution\n");
   interpretNode(treeRoot);
   return 0;
