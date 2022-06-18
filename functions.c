@@ -41,7 +41,7 @@ void treePrint(Node *node, int indent, int step)
   if (indent < 1) die("La identación no puede ser negativa en treePrint");
   if (node == NULL) die("Nodo negativo como argumento a treePrint");
 
-  printf("call %d\naddress: %p\ntype: %d\nsubtype: %d\nnext: %p\nop1: %p\nop2: %p\nop3: %p\nop4: %p\n", indent, (void *)node, node -> type, node -> subtype, (void *)node -> next, (void *)node -> op1, (void *)node -> op2, (void *)node -> op3, (void *)node -> op4);
+  //printf("call %d\naddress: %p\ntype: %d\nsubtype: %d\nnext: %p\nop1: %p\nop2: %p\nop3: %p\nop4: %p\n", indent, (void *)node, node -> type, node -> subtype, (void *)node -> next, (void *)node -> op1, (void *)node -> op2, (void *)node -> op3, (void *)node -> op4);
   switch (node -> type) {
     case T_SENTENCE:
       switch (node -> subtype) {
@@ -205,7 +205,6 @@ Node* tableGet(Node **t, const char *name)
     tmp = tmp -> next;
   }
 
-  die("Variable no encontrada en la tabla de símbolos");
   return NULL;
 }
 
@@ -563,6 +562,8 @@ void interpretFor(Node *node)
 {
   if (node == NULL) die("interpretFor llamado con NULL");
   if (node -> subtype != FOR) die("interpretFor llamado con nodo incorrecto");
+  if (tableGet(&symbolRoot, node -> name) == NULL) die("Variable no encontrada en for");
+  if (tableGet(&symbolRoot, node -> name) -> type != T_VARIABLE) die("Tipo de tabla incorrecto como argumento a interpretFor");
 
   int int_tmp;
   double float_tmp;
@@ -744,7 +745,9 @@ int main(int argc, char *argv[])
   printf("Arbol sintáctico\n");
   treePrint(treeRoot, 1, 1);
   printf("\n");
-  tablePrint(funcRoot);
+  if (funcRoot != NULL) {
+    tablePrint(funcRoot);
+  }
   printf("Program execution\n");
   interpretNode(treeRoot);
   return 0;

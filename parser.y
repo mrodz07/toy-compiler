@@ -54,8 +54,40 @@ fun_decls: fun_decls fun_decl
          | fun_decl
          ;
 
-fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls BEGN opt_stmts END { tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, currentSymbolTable, currentParamTable, $10, NULL)); currentSymbolTable = NULL; currentParamTable = NULL; }
-        | FUN ID PRNTH1 oparams PRNTH2 COLON type SEMCLN { tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, NULL, currentParamTable, NULL, NULL)); currentSymbolTable = NULL; currentParamTable = NULL; }
+fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls BEGN opt_stmts END
+        { 
+          if (funcRoot != NULL) {
+            if (tableGet(&funcRoot, $2) == NULL) {
+              tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, currentSymbolTable, currentParamTable, $10, NULL));
+              currentSymbolTable = NULL;
+              currentParamTable = NULL;
+            } else if (tableGet(&funcRoot, $2) != NULL && tableGet(&funcRoot, $2) -> op3 == NULL) {
+              tableGet(&funcRoot, $2) -> op3 = $10;
+            } else {
+              die_line("Múltiple definición de función");
+            }
+          } else {
+              tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, currentSymbolTable, currentParamTable, $10, NULL));
+              currentSymbolTable = NULL;
+              currentParamTable = NULL;
+          }
+        }
+        | FUN ID PRNTH1 oparams PRNTH2 COLON type SEMCLN
+        {
+          if (funcRoot != NULL) { 
+            if (tableGet(&funcRoot, $2) == NULL) {
+              tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, NULL, currentParamTable, NULL, NULL));
+              currentSymbolTable = NULL;
+              currentParamTable = NULL;
+            } else {
+              die_line("Múltiple definición de función");
+            }
+          } else {
+            tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, NULL, currentParamTable, NULL, NULL));
+            currentSymbolTable = NULL;
+            currentParamTable = NULL;
+          }
+        }
 
         ;
 
@@ -71,7 +103,7 @@ param: ID COLON type { tableAddNode(&currentParamTable, nodeNew(T_VARIABLE, $3, 
 
 stmt: ID ARROW expr {
                       // La condicional que aparece en esta regla junto con expr, term, factor y expression sirve para comprobar que los tipos de argumentos (variable y expresión en este caso) sean iguales
-                      if (subtypeGetCommon(tableGet(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1 ) { 
+                      if (tableGet(&symbolRoot, $1) != NULL && subtypeGetCommon(tableGet(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1 ) { 
                         $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&symbolRoot, $1), $3, NULL, NULL); 
                       } else { 
                         die_line("Los 'subtypes' son distintos en ASSIGN"); 
@@ -82,7 +114,13 @@ stmt: ID ARROW expr {
     | WHILE PRNTH1 expression PRNTH2 stmt { $$ = nodeNew(T_SENTENCE, WHILE, NULL, NULL, NULL, $3, $5, NULL, NULL); }
     | REPEAT stmt UNTIL PRNTH1 expression PRNTH2 { $$ = nodeNew(T_SENTENCE, REPEAT, NULL, NULL, NULL, $2, $5, NULL, NULL); }
     | FOR ID ARROW expr UNTIL expr STEP expr DO stmt { $$ = nodeNew(T_SENTENCE, FOR, $2, NULL, NULL, $4, $6, $8, $10); /* Se guarda el ID en el 'name' para su futura modificación*/ }
-    | READ ID { $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, tableGet(&symbolRoot, $2), NULL, NULL, NULL); }
+    | READ ID { 
+                if (tableGet(&symbolRoot, $2) != NULL) {
+                  $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, tableGet(&symbolRoot, $2), NULL, NULL, NULL);
+                } else {
+                  die("ID no encontrada en stmt");
+                }
+              }
     | PRINT expr { $$ = nodeNew(T_SENTENCE, PRINT, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
     | RETURN expr { $$ = nodeNew(T_SENTENCE, RETURN, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
     | BEGN opt_stmts END { $$ = nodeNew(T_SENTENCE, BEGN_END, NULL, NULL, NULL, $2, NULL, NULL, NULL); }
@@ -133,7 +171,13 @@ term: term MUL factor {
     ;
 
 factor: PRNTH1 expr PRNTH2 { $$ = $2; }
-      | ID { $$ = tableGet(&symbolRoot, $1); }
+      | ID { 
+              if (tableGet(&symbolRoot, $1) != NULL) {
+                $$ = tableGet(&symbolRoot, $1);
+              } else {
+                die("ID no encontrada en factor");
+              }
+           }
       | NUM_INT { $$ = nodeNew(T_CONSTANT, INT, NULL, valueNew(INT, $1, 0), NULL, NULL, NULL, NULL, NULL); }
       | NUM_FLT { $$ = nodeNew(T_CONSTANT, FLOAT, NULL, valueNew(FLOAT, 0, $1), NULL, NULL, NULL, NULL, NULL); }
       | ID PRNTH1 opt_exprs PRNTH2 { $$ = nodeNew(T_SENTENCE, FUN_CALL, $1, NULL, NULL, $3, NULL, NULL, NULL); }
