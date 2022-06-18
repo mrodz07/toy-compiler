@@ -58,7 +58,10 @@ fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls
         { 
           if (funcRoot != NULL && tableGet(&funcRoot, $2) != NULL) {
             if (tableGet(&funcRoot, $2) -> op1 == NULL) { 
-              tableGet(&funcRoot, $2) -> op1 = currentParamTable;
+              tableGet(&funcRoot, $2) -> op1 = currentSymbolTable;
+              currentFunc = tableGet(&funcRoot, $2);
+              currentSymbolTable = NULL;
+              currentParamTable = NULL;
             } else {
               die_line("Múltiple definición de función");
             }
@@ -97,10 +100,14 @@ param: ID COLON type { tableAddNode(&currentParamTable, nodeNew(T_VARIABLE, $3, 
 
 stmt: ID ARROW expr {
                       // La condicional que aparece en esta regla junto con expr, term, factor y expression sirve para comprobar que los tipos de argumentos (variable y expresión en este caso) sean iguales
-                      if (tableGet(&symbolRoot, $1) != NULL && subtypeGetCommon(tableGet(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1 ) { 
+                      if (currentFunc != NULL && tableGet(&currentFunc -> op2, $1) != NULL && subtypeGetCommon(tableGet(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1) { 
+                        $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&currentFunc -> op2, $1), $3, NULL, NULL); 
+                      } else if (currentFunc != NULL && tableGet(&currentFunc -> op1, $1) != NULL && subtypeGetCommon(tableGet(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1) { 
+                        $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&currentFunc -> op1, $1), $3, NULL, NULL); 
+                      } else if (tableGet(&symbolRoot, $1) != NULL && subtypeGetCommon(tableGet(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1) {
                         $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&symbolRoot, $1), $3, NULL, NULL); 
-                      } else { 
-                        die_line("Los 'subtypes' son distintos en ASSIGN"); 
+                      } else {
+                        die_line("Los 'subtypes' son distintos en ASSIGN o no se encontró la variable"); 
                       }
                     }
     | IF expression THEN stmt { $$ = nodeNew(T_SENTENCE, IF, NULL, NULL, NULL, $2, $4, NULL, NULL); }
@@ -109,7 +116,11 @@ stmt: ID ARROW expr {
     | REPEAT stmt UNTIL PRNTH1 expression PRNTH2 { $$ = nodeNew(T_SENTENCE, REPEAT, NULL, NULL, NULL, $2, $5, NULL, NULL); }
     | FOR ID ARROW expr UNTIL expr STEP expr DO stmt { $$ = nodeNew(T_SENTENCE, FOR, $2, NULL, NULL, $4, $6, $8, $10); /* Se guarda el ID en el 'name' para su futura modificación*/ }
     | READ ID { 
-                if (tableGet(&symbolRoot, $2) != NULL) {
+                if (currentFunc != NULL && tableGet(&currentFunc -> op2, $2) != NULL) {
+                  $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, tableGet(&currentFunc -> op2, $2), NULL, NULL, NULL);
+                } else if (currentFunc != NULL && tableGet(&currentFunc -> op1, $2)) {
+                  $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, tableGet(&currentFunc -> op1, $2), NULL, NULL, NULL);
+                } else if (tableGet(&symbolRoot, $2) != NULL) {
                   $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, tableGet(&symbolRoot, $2), NULL, NULL, NULL);
                 } else {
                   die_line("ID no encontrada en stmt");
@@ -166,7 +177,11 @@ term: term MUL factor {
 
 factor: PRNTH1 expr PRNTH2 { $$ = $2; }
       | ID { 
-              if (tableGet(&symbolRoot, $1) != NULL) {
+              if (currentFunc != NULL && tableGet(&currentFunc -> op2, $1) != NULL) {
+                $$ = tableGet(&currentFunc -> op2, $1);   
+              } else if (currentFunc != NULL && tableGet(&currentFunc -> op1, $1)) {
+                $$ = tableGet(&currentFunc -> op1, $1);
+              } else if (tableGet(&symbolRoot, $1) != NULL) {
                 $$ = tableGet(&symbolRoot, $1);
               } else {
                 die_line("ID no encontrada en factor");

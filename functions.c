@@ -563,12 +563,20 @@ void interpretFor(Node *node)
 {
   if (node == NULL) die("interpretFor llamado con NULL");
   if (node -> subtype != FOR) die("interpretFor llamado con nodo incorrecto");
-  if (tableGet(&symbolRoot, node -> name) == NULL) die("Variable no encontrada en for");
   if (tableGet(&symbolRoot, node -> name) -> type != T_VARIABLE) die("Tipo de tabla incorrecto como argumento a interpretFor");
 
   int int_tmp;
   double float_tmp;
-  Node *var = tableGet(&symbolRoot, node -> name); 
+  Node *var; 
+  if (currentFunc != NULL && tableGet(&currentFunc -> op2, node -> name)) {
+    var = tableGet(&currentFunc -> op2, node -> name);
+  } else if (currentFunc != NULL && tableGet(&currentFunc -> op1, node -> name) != NULL) {
+    var = tableGet(&currentFunc -> op1, node -> name);
+  } else if (tableGet(&symbolRoot, node -> name) != NULL) {
+    var = tableGet(&symbolRoot, node -> name);
+  } else {
+    die("Variable no encontrada en for");
+  }
 
   // Guardamos el valor de la variable para luego restaurarlo
   if (var -> subtype == INT) {
