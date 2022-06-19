@@ -11,7 +11,6 @@ Node *currentSymbolTable = NULL;
 Node *currentParamTable = NULL;
 Node *funcRoot = NULL;
 Node *currentFunc = NULL;
-int funcArgCounter = 0;
 
 // Función que termina la ejecución del programa e imprime un mensaje personalizado
 void die(const char *s) 
@@ -190,6 +189,24 @@ void tablePrint(Node *t)
 
   tmp = NULL;
   free(tmp);
+}
+
+int tableCountElements(Node **t)
+{
+  if (t == NULL) die("El argumento t pasado a tableCountElements es NULL");
+  if (*t != NULL) {
+    if ((*t) -> type != T_VARIABLE && (*t) -> type != T_FUNCTION) die("El tipo de tabla pasado a tableCountElements es incorrecto");
+  }
+
+  int acc = 0;
+  Node *tmp = *t; 
+
+  while (tmp != NULL) {
+    tmp = tmp -> next;
+    acc++;
+  }
+  
+  return acc;
 }
 
 // Busca en la table de símbolos la variable con el nombre especificado
@@ -721,6 +738,38 @@ void interpretNode(Node *node)
   }
 
   if (node -> next != NULL) interpretNode(node -> next);
+}
+
+int functionCheckValidArgs(Node *params, Node *args)
+{
+  if (params != NULL) {
+    if (params -> type != T_VARIABLE) die("Tipo de nodo incorrecto como argumento a functionCheckValidArgs ");
+  }
+  if (args != NULL) {
+    if (params -> type != T_VARIABLE) die("Tipo de nodo incorrecto como argumento a functionCheckValidArgs ");
+  }
+
+  Node *tmp_params = params;
+  Node *tmp_args = args;
+  printf("Pasas con tmp_params\n");
+  int param_num = tableCountElements(&tmp_params);
+  printf("Pasas con args_num\n");
+  int args_num = tableCountElements(&tmp_args);
+  
+  if (args_num == param_num) {
+      for (int i = 0; i < args_num; i++) {
+        printf("Loop argumentos: i:%d, elements:%d\n", i, args_num);
+        if (tmp_args == NULL) die_line("Numero de argumentos invalido a función");
+        if (subtypeGetCommon(treeGetType(tmp_args), tmp_params -> subtype) == -1) die_line("Argumentos invalidos a función");
+        
+        tmp_params = tmp_params -> next;
+        tmp_args = tmp_args -> next;
+    }
+  } else {
+    return 0;
+  }
+
+  return 1;
 }
 
 // Función personalizada de yyerror, para que siempre se llame la función personalizada die_line

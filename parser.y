@@ -60,21 +60,19 @@ fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls
             if (tableGet(&funcRoot, $2) -> op1 == NULL) { 
               tableGet(&funcRoot, $2) -> op1 = currentSymbolTable;
               currentFunc = tableGet(&funcRoot, $2);
-              currentSymbolTable = NULL;
-              currentParamTable = NULL;
             } else {
               die_line("Múltiple definición de función");
             }
           } else {
             tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, currentSymbolTable, currentParamTable, NULL, NULL));
             currentFunc = tableGet(&funcRoot, $2);
-            currentSymbolTable = NULL;
-            currentParamTable = NULL;
           }
         }
 BEGN opt_stmts END
         {
           tableGet(&funcRoot, $2) -> op3 = $11;
+          currentSymbolTable = NULL;
+          currentParamTable = NULL;
         }
 
         | FUN ID PRNTH1 oparams PRNTH2 COLON type SEMCLN
@@ -83,8 +81,8 @@ BEGN opt_stmts END
             die_line("Múltiple definición de función");
           } else {
             tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, NULL, currentParamTable, NULL, NULL));
-            currentParamTable = NULL;
           }
+          currentParamTable = NULL;
         }
         ;
 
@@ -93,8 +91,8 @@ oparams: params
        ;
 
 params: param COMMA params
-       | param
-       ;
+      | param
+      ;
 
 param: ID COLON type { tableAddNode(&currentParamTable, nodeNew(T_VARIABLE, $3, $1, valueNew($3, 0, 0), NULL, NULL, NULL, NULL, NULL)); }
 
@@ -189,14 +187,24 @@ factor: PRNTH1 expr PRNTH2 { $$ = $2; }
            }
       | NUM_INT { $$ = nodeNew(T_CONSTANT, INT, NULL, valueNew(INT, $1, 0), NULL, NULL, NULL, NULL, NULL); }
       | NUM_FLT { $$ = nodeNew(T_CONSTANT, FLOAT, NULL, valueNew(FLOAT, 0, $1), NULL, NULL, NULL, NULL, NULL); }
-      | ID PRNTH1 opt_exprs PRNTH2 { $$ = nodeNew(T_SENTENCE, FUN_CALL, $1, NULL, NULL, $3, NULL, NULL, NULL); }
+      | ID PRNTH1 opt_exprs PRNTH2 { 
+                                      if (funcRoot != NULL && tableGet(&funcRoot, $1) != NULL) {
+                                        if (functionCheckValidArgs(tableGet(&funcRoot, $1) -> op2, $3)) {
+                                          $$ = nodeNew(T_SENTENCE, FUN_CALL, $1, NULL, NULL, $3, NULL, NULL, NULL); 
+                                        } else {
+                                          die_line("Error en los argumentos pasados a la función");
+                                        }
+                                      } else {
+                                        die_line("Función no encontrada");
+                                      }
+                                   }
       ;
 
 opt_exprs: expr_lst
          |          { $$ = NULL;}
          ;
 
-expr_lst: expr COMMA expr_lst { $1 -> next = $3; $$ = $1; }
+expr_lst: expr COMMA expr_lst { /* Arreglar bug cuando una variable se referencia a sí */ $1 -> next = $3; $$ = $1; }
         | expr { $1 -> next = NULL; $$ = $1; }
         ;
 
