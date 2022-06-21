@@ -65,9 +65,9 @@ void msg_warning(const char *s);
 
 // Funciones para gestionar tablas de símbolos y funciones
 Node* tableGet(Node **t, const char *name);
+Node* tableGetIndex(Node **t, int i);
 void tableAddNode(Node **t, Node *n);
 void tablePrint(Node *t);
-int tableCountElements(Node **t);
 
 // Funciones para el árbol sintáctico
 void treePrint(Node *node, int indent, int step);
@@ -84,9 +84,12 @@ void interpretIfElse(Node *node);
 void interpretWhile(Node *node);
 void interpretRepeat(Node *node);
 void interpretFor(Node *node); 
+void interpretPrint(Node *node);
+void interpretReturn(Node *node, Node **retn);
+Node* interpretFunCall(Node *node);
 
 // Funciones para las funciones de la gramática
-int functionCheckValidArgs(Node *params, Node *args);
+int functionCheckValidArgs(Node *params, int params_size, Node *args, int args_size);
 
 // Funciones para leer e imprimir valores
 void varRead(Node *symb);

@@ -64,8 +64,9 @@ fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls
               die_line("Múltiple definición de función");
             }
           } else {
-            tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, currentSymbolTable, currentParamTable, NULL, NULL));
+            tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, valueNew(INT, paramCounter, 0), NULL, currentSymbolTable, currentParamTable, NULL, NULL));
             currentFunc = tableGet(&funcRoot, $2);
+            paramCounter = 0;
           }
         }
 BEGN opt_stmts END
@@ -80,8 +81,9 @@ BEGN opt_stmts END
           if (funcRoot != NULL && tableGet(&funcRoot, $2) != NULL) {
             die_line("Múltiple definición de función");
           } else {
-            tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, NULL, NULL, NULL, currentParamTable, NULL, NULL));
+            tableAddNode(&funcRoot, nodeNew(T_FUNCTION, $7, $2, valueNew(INT, paramCounter, 0), NULL, NULL, currentParamTable, NULL, NULL));
           }
+          paramCounter = 0;
           currentParamTable = NULL;
         }
         ;
@@ -94,15 +96,15 @@ params: param COMMA params
       | param
       ;
 
-param: ID COLON type { tableAddNode(&currentParamTable, nodeNew(T_VARIABLE, $3, $1, valueNew($3, 0, 0), NULL, NULL, NULL, NULL, NULL)); }
+param: ID COLON type { tableAddNode(&currentParamTable, nodeNew(T_VARIABLE, $3, $1, valueNew($3, 0, 0), NULL, NULL, NULL, NULL, NULL)); paramCounter++; }
 
 stmt: ID ARROW expr {
                       // La condicional que aparece en esta regla junto con expr, term, factor y expression sirve para comprobar que los tipos de argumentos (variable y expresión en este caso) sean iguales
-                      if (currentFunc != NULL && tableGet(&currentFunc -> op2, $1) != NULL && subtypeGetCommon(tableGet(&currentFunc -> op2, $1) -> subtype, treeGetType($3)) != -1) { 
+                      if (currentFunc != NULL && currentFunc -> op2 != NULL && tableGet(&currentFunc -> op2, $1) != NULL && subtypeGetCommon(tableGet(&currentFunc -> op2, $1) -> subtype, treeGetType($3)) != -1) { 
                         $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&currentFunc -> op2, $1), $3, NULL, NULL); 
-                      } else if (currentFunc != NULL && tableGet(&currentFunc -> op1, $1) != NULL && subtypeGetCommon(tableGet(&currentFunc -> op1, $1) -> subtype, treeGetType($3)) != -1) { 
+                      } else if (currentFunc != NULL && currentFunc -> op1 != NULL && tableGet(&currentFunc -> op1, $1) != NULL && subtypeGetCommon(tableGet(&currentFunc -> op1, $1) -> subtype, treeGetType($3)) != -1) { 
                         $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&currentFunc -> op1, $1), $3, NULL, NULL); 
-                      } else if (tableGet(&symbolRoot, $1) != NULL && subtypeGetCommon(tableGet(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1) {
+                      } else if (symbolRoot != NULL && tableGet(&symbolRoot, $1) != NULL && subtypeGetCommon(tableGet(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1) {
                         $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&symbolRoot, $1), $3, NULL, NULL); 
                       } else {
                         die_line("Los 'subtypes' son distintos en ASSIGN o no se encontró la variable"); 
@@ -114,11 +116,11 @@ stmt: ID ARROW expr {
     | REPEAT stmt UNTIL PRNTH1 expression PRNTH2 { $$ = nodeNew(T_SENTENCE, REPEAT, NULL, NULL, NULL, $2, $5, NULL, NULL); }
     | FOR ID ARROW expr UNTIL expr STEP expr DO stmt { $$ = nodeNew(T_SENTENCE, FOR, $2, NULL, NULL, $4, $6, $8, $10); /* Se guarda el ID en el 'name' para su futura modificación*/ }
     | READ ID { 
-                if (currentFunc != NULL && tableGet(&currentFunc -> op2, $2) != NULL) {
+                if (currentFunc != NULL && currentFunc -> op2 != NULL && tableGet(&currentFunc -> op2, $2) != NULL) {
                   $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, tableGet(&currentFunc -> op2, $2), NULL, NULL, NULL);
-                } else if (currentFunc != NULL && tableGet(&currentFunc -> op1, $2)) {
+                } else if (currentFunc != NULL && currentFunc -> op1 != NULL && tableGet(&currentFunc -> op1, $2)) {
                   $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, tableGet(&currentFunc -> op1, $2), NULL, NULL, NULL);
-                } else if (tableGet(&symbolRoot, $2) != NULL) {
+                } else if (symbolRoot != NULL && tableGet(&symbolRoot, $2) != NULL) {
                   $$ = nodeNew(T_SENTENCE, READ, NULL, NULL, NULL, tableGet(&symbolRoot, $2), NULL, NULL, NULL);
                 } else {
                   die_line("ID no encontrada en stmt");
@@ -175,11 +177,11 @@ term: term MUL factor {
 
 factor: PRNTH1 expr PRNTH2 { $$ = $2; }
       | ID { 
-              if (currentFunc != NULL && tableGet(&currentFunc -> op2, $1) != NULL) {
+              if (currentFunc != NULL && currentFunc -> op2 != NULL && tableGet(&currentFunc -> op2, $1) != NULL) {
                 $$ = tableGet(&currentFunc -> op2, $1);   
-              } else if (currentFunc != NULL && tableGet(&currentFunc -> op1, $1)) {
+              } else if (currentFunc != NULL && currentFunc -> op1 != NULL && tableGet(&currentFunc -> op1, $1)) {
                 $$ = tableGet(&currentFunc -> op1, $1);
-              } else if (tableGet(&symbolRoot, $1) != NULL) {
+              } else if (symbolRoot != NULL && tableGet(&symbolRoot, $1) != NULL) {
                 $$ = tableGet(&symbolRoot, $1);
               } else {
                 die_line("ID no encontrada en factor");
@@ -189,8 +191,10 @@ factor: PRNTH1 expr PRNTH2 { $$ = $2; }
       | NUM_FLT { $$ = nodeNew(T_CONSTANT, FLOAT, NULL, valueNew(FLOAT, 0, $1), NULL, NULL, NULL, NULL, NULL); }
       | ID PRNTH1 opt_exprs PRNTH2 { 
                                       if (funcRoot != NULL && tableGet(&funcRoot, $1) != NULL) {
-                                        if (functionCheckValidArgs(tableGet(&funcRoot, $1) -> op2, $3)) {
-                                          $$ = nodeNew(T_SENTENCE, FUN_CALL, $1, NULL, NULL, $3, NULL, NULL, NULL); 
+                                        if (functionCheckValidArgs(tableGet(&funcRoot, $1) -> op2, *tableGet(&funcRoot, $1) -> value -> val_int, currentParamTable, argCounter)) {
+                                          $$ = nodeNew(T_SENTENCE, FUN_CALL, $1, valueNew(INT, argCounter, 0), NULL, currentParamTable, NULL, NULL, NULL); 
+                                          argCounter = 0;
+                                          currentParamTable = NULL;
                                         } else {
                                           die_line("Error en los argumentos pasados a la función");
                                         }
@@ -201,11 +205,35 @@ factor: PRNTH1 expr PRNTH2 { $$ = $2; }
       ;
 
 opt_exprs: expr_lst
-         |          { $$ = NULL;}
+         |          { $$ = NULL; }
          ;
 
-expr_lst: expr COMMA expr_lst { /* Arreglar bug cuando una variable se referencia a sí */ $1 -> next = $3; $$ = $1; }
-        | expr { $1 -> next = NULL; $$ = $1; }
+expr_lst: expr COMMA expr_lst { 
+                                if ($1 -> type != T_VARIABLE) {
+                                  tableAddNode(&currentParamTable, $1);
+                                } else {
+                                  Node *tmp = malloc(sizeof(Node));
+                                  memcpy(tmp, $1, sizeof(Node));
+                                  tmp -> next = NULL;
+                                  printf("Var tmp %d\n", *tmp -> value -> val_int);
+                                  tableAddNode(&currentParamTable, tmp);
+                                  tmp = NULL;
+                                }
+                                argCounter++;
+                              }
+        | expr { 
+                  if ($1 -> type != T_VARIABLE) {
+                    tableAddNode(&currentParamTable, $1);
+                  } else {
+                    Node *tmp = malloc(sizeof(Node));
+                    memcpy(tmp, $1, sizeof(Node));
+                    tmp -> next = NULL;
+                    printf("Var tmp %d\n", *tmp -> value -> val_int);
+                    tableAddNode(&currentParamTable, tmp);
+                    tmp = NULL;
+                  }
+                  argCounter++;
+               }
         ;
 
 expression: expr LESTN expr     {

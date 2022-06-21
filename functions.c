@@ -3,14 +3,17 @@
 */
 #include "functions.h"
 #include "parser.tab.h"
+#include <stdio.h>
 
 // Declaración de apuntadores que servirán para la tabla de símbolos principal
 Node *treeRoot = NULL;
 Node *symbolRoot = NULL;
+Node *funcRoot = NULL;
 Node *currentSymbolTable = NULL;
 Node *currentParamTable = NULL;
-Node *funcRoot = NULL;
 Node *currentFunc = NULL;
+int paramCounter = 0;
+int argCounter = 0;
 
 // Función que termina la ejecución del programa e imprime un mensaje personalizado
 void die(const char *s) 
@@ -191,29 +194,11 @@ void tablePrint(Node *t)
   free(tmp);
 }
 
-int tableCountElements(Node **t)
-{
-  if (t == NULL) die("El argumento t pasado a tableCountElements es NULL");
-  if (*t != NULL) {
-    if ((*t) -> type != T_VARIABLE && (*t) -> type != T_FUNCTION) die("El tipo de tabla pasado a tableCountElements es incorrecto");
-  }
-
-  int acc = 0;
-  Node *tmp = *t; 
-
-  while (tmp != NULL) {
-    tmp = tmp -> next;
-    acc++;
-  }
-  
-  return acc;
-}
-
 // Busca en la table de símbolos la variable con el nombre especificado
 Node* tableGet(Node **t, const char *name)
 {
   if (t == NULL) die("El argumento t pasado a tableGet es NULL");
-  if (*t == NULL) die("El argumento t pasado a tableGet apunta a NULL");
+  if (*t == NULL) die_line("El argumento t pasado a tableGet apunta a NULL");
   if ((*t) -> type != T_VARIABLE && (*t) -> type != T_FUNCTION) die("El tipo de tabla pasado a tableGet es incorrecto");
 
   Node *tmp = *t; 
@@ -256,14 +241,12 @@ void tableAddNode(Node **t, Node *n)
 {
   if (t == NULL) die("t nulo como argumento a tableAddNode");
   if (n == NULL) die("Node nulo como argumento a tableAddNode");
-  if (n -> type != T_VARIABLE && n -> type != T_FUNCTION) die("Nodo incorrento como argumento a tableAddNode");
-
-  Node *tmp;
+  if (n -> type != T_VARIABLE && n -> type != T_FUNCTION && n -> type != T_CONSTANT) die("Nodo incorrecto como argumento a tableAddNode");
 
   if (*t == NULL) {
     *t = n;
   } else {
-    tmp = *t;
+    Node *tmp = *t;
     while (tmp -> next != NULL) {
       tmp = tmp -> next; 
     }
@@ -619,6 +602,43 @@ void interpretFor(Node *node)
   }
 }
 
+Node* tableGetIndex(Node **t, int i)
+{
+  if (t == NULL) die("El argumento t pasado a tableGetIndex es NULL");
+  if (*t == NULL) die_line("El argumento t pasado a tableGetIndex apunta a NULL");
+  if ((*t) -> type != T_VARIABLE && (*t) -> type != T_FUNCTION && (*t) -> type != T_CONSTANT) die("El tipo de tabla pasado a tableGetIndex es incorrecto");
+
+  int cnt = 0;
+  Node *tmp = *t; 
+  while (tmp != NULL && cnt != i) {
+    tmp = tmp -> next;
+    cnt++;
+  }
+  
+  if (tmp == NULL) {
+    die("Elemento no encontrado en tableGetIndex");
+  }
+
+  return tmp;
+}
+
+Node* interpretFunCall(Node *node)
+{
+  if (node == NULL) die("interpretFunCall llamado con argumento NULL");
+  if (node -> subtype != FUN_CALL) die("interpretFunCall llamado con tipo de nodo incorrecto");
+
+  Node *fun = tableGet(&funcRoot, node -> name);
+
+  Node *fun_st_back = malloc(sizeof(Node) * (*fun -> value -> val_int));
+  memcpy(fun_st_back, fun -> op2, sizeof(Node) * (*fun -> value -> val_int));
+
+  for (int i = 0; i < *fun -> value -> val_int; i++) {
+    valueAssign(&tableGetIndex(&fun -> op2, i) -> value, arithOpEval(tableGetIndex(&node -> op1, i)));
+  }
+
+  interpretNode(fun -> op3);
+}
+
 /*
 * Función que evalua las operaciones aritméticas
 */
@@ -699,6 +719,30 @@ void valueAssign(Value **var, Value *expr)
   free(tmp);
 }
 
+void interpretPrint(Node *node)
+{
+  if (node == NULL) die("Nodo nulo como argumento a interpretPrint");
+  if (node -> subtype != PRINT) die("Nodo incorrecto como argumento a interpretPrint");
+
+  Node *tmp = node -> op1;
+
+  if (tmp -> subtype == FUN_CALL) {
+    interpretPrint(interpretFunCall(node -> op1));
+  } else  {
+    valuePrint(arithOpEval(node -> op1));
+  }
+}
+
+void interpretReturn(Node *node, Node **retn)
+{
+  if (node == NULL) die("Argumento NULL pasado a interpretReturn");
+  if (retn == NULL) die("Argumento NULL pasado a interpretReturn en return");
+  if (*retn == NULL) die("Ret NULL pasado a interpretReturn");
+  if (node -> subtype != RETURN) die("Argumento de subtipo distinto como argumento a interpretReturn");
+
+  nodeNew(T_CONSTANT, treeGetType(node -> op1), NULL, arithOpEval(node->op1), NULL, NULL, NULL, NULL, NULL);   
+}
+
 /*
 * Función que 'corre' el programa. Dependiendo del subtipo de cada nodo llama a la función 'interpret*' correspondiente
 * Es recursiva y termina cuando ya no hayan más instrucciones
@@ -715,7 +759,7 @@ void interpretNode(Node *node)
       varRead(node -> op1);
       break;
     case PRINT:
-      valuePrint(arithOpEval(node -> op1));
+      interpretPrint(node);
       break;
     case IF:
       interpretIf(node); 
@@ -732,6 +776,12 @@ void interpretNode(Node *node)
     case FOR:
       interpretFor(node);
       break;
+    case FUN_CALL:
+      interpretFunCall(node);
+      break; 
+    case RETURN:
+      interpretReturn(node, &node -> op2);
+      break;
     default:
       die("Entrado a interpretNode con subtipo no valido");
       break;  
@@ -740,33 +790,24 @@ void interpretNode(Node *node)
   if (node -> next != NULL) interpretNode(node -> next);
 }
 
-int functionCheckValidArgs(Node *params, Node *args)
+int functionCheckValidArgs(Node *params, int params_size, Node *args, int args_size)
 {
-  if (params != NULL) {
-    if (params -> type != T_VARIABLE) die("Tipo de nodo incorrecto como argumento a functionCheckValidArgs ");
-  }
-  if (args != NULL) {
-    if (params -> type != T_VARIABLE) die("Tipo de nodo incorrecto como argumento a functionCheckValidArgs ");
-  }
+  if (params == NULL) die("Params nulo pasado a functionCheckValidArgs como argumento");
+  if (args == NULL) die("Args nulo pasado a functionCheckValidArgs como argumento");
+  if (params -> type != T_VARIABLE) die("Tipo de nodo incorrecto como argumento a functionCheckValidArgs en params");
 
   Node *tmp_params = params;
   Node *tmp_args = args;
-  printf("Pasas con tmp_params\n");
-  int param_num = tableCountElements(&tmp_params);
-  printf("Pasas con args_num\n");
-  int args_num = tableCountElements(&tmp_args);
-  
-  if (args_num == param_num) {
-      for (int i = 0; i < args_num; i++) {
-        printf("Loop argumentos: i:%d, elements:%d\n", i, args_num);
-        if (tmp_args == NULL) die_line("Numero de argumentos invalido a función");
+
+  if (params_size == args_size) {
+      for (int i = 0; i < params_size; i++) {
         if (subtypeGetCommon(treeGetType(tmp_args), tmp_params -> subtype) == -1) die_line("Argumentos invalidos a función");
         
         tmp_params = tmp_params -> next;
         tmp_args = tmp_args -> next;
-    }
+      }
   } else {
-    return 0;
+    die_line("Número de argumentos distintos a función");
   }
 
   return 1;
@@ -795,8 +836,7 @@ int main(int argc, char *argv[])
   }
 
   yyparse();
-  printf("El programa es valido\n\n");
-  printf("Current symbol table\n");
+  printf("El programa es valido\n");
   printf("Tabla de símbolos\n");
   tablePrint(symbolRoot);
   printf("\n");
