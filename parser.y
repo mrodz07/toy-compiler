@@ -16,7 +16,7 @@
 %token<val_int> NUM_INT
 %token<val_float> NUM_FLT
 %token<nombre> ID
-%type<ptn> stmt expr factor expression opt_stmts stmt_lst term decl opt_exprs expr_lst
+%type<ptn> stmt expr expr_tmp factor expression opt_stmts stmt_lst term decl opt_exprs expr_lst
 %type<val_int> type
 %start prog
 
@@ -208,33 +208,22 @@ opt_exprs: expr_lst
          |          { $$ = NULL; }
          ;
 
-expr_lst: expr COMMA expr_lst { 
-                                if ($1 -> type != T_VARIABLE) {
-                                  tableAddNode(&currentParamTable, $1);
-                                } else {
-                                  Node *tmp = malloc(sizeof(Node));
-                                  memcpy(tmp, $1, sizeof(Node));
-                                  tmp -> next = NULL;
-                                  printf("Var tmp %d\n", *tmp -> value -> val_int);
-                                  tableAddNode(&currentParamTable, tmp);
-                                  tmp = NULL;
-                                }
-                                argCounter++;
-                              }
-        | expr { 
+expr_lst: expr_tmp COMMA expr_lst
+        | expr_tmp
+        ;
+
+expr_tmp: expr {
                   if ($1 -> type != T_VARIABLE) {
                     tableAddNode(&currentParamTable, $1);
                   } else {
                     Node *tmp = malloc(sizeof(Node));
                     memcpy(tmp, $1, sizeof(Node));
                     tmp -> next = NULL;
-                    printf("Var tmp %d\n", *tmp -> value -> val_int);
                     tableAddNode(&currentParamTable, tmp);
                     tmp = NULL;
                   }
                   argCounter++;
                }
-        ;
 
 expression: expr LESTN expr     {
                                   if (subtypeGetCommon(treeGetType($1), treeGetType($3)) != -1) {

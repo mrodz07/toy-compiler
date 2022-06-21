@@ -102,7 +102,7 @@ int valueGretn(Value *n1, Value *n2);
 int valueEqual(Value *n1, Value *n2);
 int valueLessOrEq(Value *n1, Value *n2);
 int valueGretOrEq(Value *n1, Value *n2);
-void valueAssign(Value **var, Value *expr);
+void valueAssign(Value *var, Value *expr);
 
 // Funciones para interpretar operaciones aritméticas
 Value* arithOpEval(Node *node);

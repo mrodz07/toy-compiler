@@ -586,19 +586,19 @@ void interpretFor(Node *node)
   }
 
   // Asignamos a la variable apuntada por FOR el valor del op1
-  valueAssign(&var -> value, arithOpEval(node -> op1)); 
+  valueAssign(var -> value, arithOpEval(node -> op1)); 
 
   // Revisamos que la condición se cumpla y realizamos la operación
   while (valueEqual(var -> value, arithOpEval(node -> op2)) != 1) {
     interpretNode(node -> op4);
-    valueAssign(&var -> value, valueSum(var -> value, arithOpEval(node->op3)));
+    valueAssign(var -> value, valueSum(var -> value, arithOpEval(node->op3)));
   } 
 
   // Regresamos su valor anterior a la variable
   if (var -> subtype == INT) {
-    valueAssign(&var -> value, valueNew(INT, int_tmp, 0));
+    valueAssign(var -> value, valueNew(INT, int_tmp, 0));
   } else {
-    valueAssign(&var -> value, valueNew(FLOAT, 0, float_tmp));
+    valueAssign(var -> value, valueNew(FLOAT, 0, float_tmp));
   }
 }
 
@@ -633,7 +633,7 @@ Node* interpretFunCall(Node *node)
   memcpy(fun_st_back, fun -> op2, sizeof(Node) * (*fun -> value -> val_int));
 
   for (int i = 0; i < *fun -> value -> val_int; i++) {
-    valueAssign(&tableGetIndex(&fun -> op2, i) -> value, arithOpEval(tableGetIndex(&node -> op1, i)));
+    printf("valor de variable %d: %d\n", i, *tableGetIndex(&node -> op1, i) -> value -> val_int);
   }
 
   interpretNode(fun -> op3);
@@ -709,14 +709,18 @@ int logicalOpEval(Node *node)
 /*
 * Función que asigna un Value a otro
 */
-void valueAssign(Value **var, Value *expr)
+void valueAssign(Value *var, Value *expr)
 {
-  if (var == NULL || *var == NULL || expr == NULL) die("Valores nulos pasados a valueAssign");
-  if ((*var) -> type != expr -> type) die("Asignación incorrecta en valueAssign");
+  if (var == NULL || expr == NULL) die("Valores nulos pasados a valueAssign");
+  if (var -> type != expr -> type) die("Asignación incorrecta en valueAssign");
 
-  Value *tmp = *var;
-  *var = expr;
-  free(tmp);
+  if (var -> type == INT) {
+    var -> val_int = expr -> val_int;
+  } else {
+    var -> val_float = expr -> val_float;
+  }
+  expr = NULL;
+  free(expr);
 }
 
 void interpretPrint(Node *node)
@@ -753,7 +757,7 @@ void interpretNode(Node *node)
 
   switch (node -> subtype) {
     case ASSIGN:
-      valueAssign(&node -> op1 -> value, arithOpEval(node -> op2));
+      valueAssign(node -> op1 -> value, arithOpEval(node -> op2));
       break;
     case READ:
       varRead(node -> op1);
