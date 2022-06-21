@@ -627,16 +627,22 @@ Node* interpretFunCall(Node *node)
   if (node == NULL) die("interpretFunCall llamado con argumento NULL");
   if (node -> subtype != FUN_CALL) die("interpretFunCall llamado con tipo de nodo incorrecto");
 
+  Node *res = NULL;
   Node *fun = tableGet(&funcRoot, node -> name);
 
   Node *fun_st_back = malloc(sizeof(Node) * (*fun -> value -> val_int));
   memcpy(fun_st_back, fun -> op2, sizeof(Node) * (*fun -> value -> val_int));
 
   for (int i = 0; i < *fun -> value -> val_int; i++) {
-    printf("valor de variable %d: %d\n", i, *tableGetIndex(&node -> op1, i) -> value -> val_int);
+    tableGetIndex(&fun->op2, i) -> value = arithOpEval(tableGetIndex(&node -> op1, i));
   }
 
-  interpretNode(fun -> op3);
+  res = interpretNode(fun -> op3);
+
+  fun -> op2 = fun_st_back;
+  fun_st_back = NULL;
+
+  return res;
 }
 
 /*
@@ -731,27 +737,25 @@ void interpretPrint(Node *node)
   Node *tmp = node -> op1;
 
   if (tmp -> subtype == FUN_CALL) {
-    interpretPrint(interpretFunCall(node -> op1));
+    interpretPrint(nodeNew(T_SENTENCE, PRINT, NULL, NULL, NULL, interpretFunCall(node -> op1), NULL, NULL, NULL));
   } else  {
     valuePrint(arithOpEval(node -> op1));
   }
 }
 
-void interpretReturn(Node *node, Node **retn)
+Node* interpretReturn(Node *node)
 {
   if (node == NULL) die("Argumento NULL pasado a interpretReturn");
-  if (retn == NULL) die("Argumento NULL pasado a interpretReturn en return");
-  if (*retn == NULL) die("Ret NULL pasado a interpretReturn");
   if (node -> subtype != RETURN) die("Argumento de subtipo distinto como argumento a interpretReturn");
 
-  nodeNew(T_CONSTANT, treeGetType(node -> op1), NULL, arithOpEval(node->op1), NULL, NULL, NULL, NULL, NULL);   
+  return nodeNew(T_CONSTANT, treeGetType(node -> op1), NULL, arithOpEval(node->op1), NULL, NULL, NULL, NULL, NULL);   
 }
 
 /*
 * Función que 'corre' el programa. Dependiendo del subtipo de cada nodo llama a la función 'interpret*' correspondiente
 * Es recursiva y termina cuando ya no hayan más instrucciones
 */
-void interpretNode(Node *node)
+Node* interpretNode(Node *node)
 {
   if (node == NULL) die("Llamado a interpretNode con NULL");
 
@@ -784,7 +788,7 @@ void interpretNode(Node *node)
       interpretFunCall(node);
       break; 
     case RETURN:
-      interpretReturn(node, &node -> op2);
+      return interpretReturn(node);
       break;
     default:
       die("Entrado a interpretNode con subtipo no valido");
@@ -792,6 +796,8 @@ void interpretNode(Node *node)
   }
 
   if (node -> next != NULL) interpretNode(node -> next);
+
+  return NULL;
 }
 
 int functionCheckValidArgs(Node *params, int params_size, Node *args, int args_size)

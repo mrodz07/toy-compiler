@@ -78,14 +78,14 @@ int typeGetCommon(int t1, int t2);
 int subtypeGetCommon(int s1, int s2);
 
 // Funciones para interpretar el arbol
-void interpretNode(Node *node);
+Node* interpretNode(Node *node);
 void interpretIf(Node *node);
 void interpretIfElse(Node *node);
 void interpretWhile(Node *node);
 void interpretRepeat(Node *node);
 void interpretFor(Node *node); 
 void interpretPrint(Node *node);
-void interpretReturn(Node *node, Node **retn);
+Node* interpretReturn(Node *node);
 Node* interpretFunCall(Node *node);
 
 // Funciones para las funciones de la gramática
