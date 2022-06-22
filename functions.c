@@ -905,17 +905,6 @@ int main(int argc, char *argv[])
   }
 
   yyparse();
-  printf("El programa es valido\n");
-  printf("Tabla de símbolos\n");
-  tablePrint(symbolRoot);
-  printf("\n");
-  printf("Arbol sintáctico\n");
-  treePrint(treeRoot, 1, 1);
-  printf("\n");
-  if (funcRoot != NULL) {
-    tablePrint(funcRoot);
-  }
-  printf("Program execution\n");
   interpretNode(treeRoot);
   return 0;
 }
