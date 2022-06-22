@@ -3,7 +3,7 @@ BISON_FLAGS = -d -Wcounterexamples
 
 default: output
 
-test_all: test1 test2 test3 test4 test5 test6 test7 test8
+test_all: test1 test2 test3 test4 test5 test6 test7 test8 test9 test10 test11
 
 test1: default
 	./output tests/prog1.txt
@@ -28,6 +28,15 @@ test7: default
 
 test8: default
 	./output tests/prog8.txt
+
+test9: default
+	./output tests/prog9.txt
+
+test10: default
+	./output tests/prog10.txt
+
+test11: default
+	./output tests/prog11.txt
 
 output: parser.tab.c lex.yy.c
 	cc $(CC_FLAGS) parser.tab.c lex.yy.c -o output

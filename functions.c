@@ -211,6 +211,38 @@ Node* tableGet(Node **t, const char *name)
   return NULL;
 }
 
+Node* assignCheck(char *var_name, Node *n2)
+{
+  if (n2 == NULL) die("Valor nulo a assignCheck");
+  if (n2 -> type != T_CONSTANT && n2 -> type != T_VARIABLE && n2 -> type != T_SENTENCE && n2 -> type != T_ARITHMETIC_OP) die("Se mando un valor de tipo incorrecto a assignCheck");
+  if (!(n2 -> subtype >= SUM && n2 -> subtype <= GRETOREQ) && n2 -> subtype != INT && n2 -> subtype != FLOAT && n2 -> subtype != FUN_CALL) die("Se mando un valor de subtipo incorrecto a assignCheck");
+
+  if (n2 -> subtype != FUN_CALL) {
+    if (currentFunc != NULL && currentFunc -> op2 != NULL && tableGet(&currentFunc -> op2, var_name) != NULL && subtypeGetCommon(tableGet(&currentFunc -> op2, var_name) -> subtype, treeGetType(n2)) != -1) {
+      return nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&currentFunc -> op2, var_name), n2, NULL, NULL); 
+    } else if (currentFunc != NULL && currentFunc -> op1 != NULL && tableGet(&currentFunc -> op1, var_name) != NULL && subtypeGetCommon(tableGet(&currentFunc -> op1, var_name) -> subtype, treeGetType(n2)) != -1) { 
+      return nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&currentFunc -> op1, var_name), n2, NULL, NULL); 
+    } else if (symbolRoot != NULL && tableGet(&symbolRoot, var_name) != NULL && subtypeGetCommon(tableGet(&symbolRoot, var_name) -> subtype, treeGetType(n2)) != -1) {
+      return nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&symbolRoot, var_name), n2, NULL, NULL); 
+    } else {
+      die_line("Los 'subtypes' son distintos en ASSIGN o no se encontró la variable"); 
+    }
+  } else {
+    if (currentFunc != NULL && currentFunc -> op2 != NULL && tableGet(&currentFunc -> op2, var_name) != NULL && n2 -> op1 -> subtype == tableGet(&currentFunc -> op2, var_name) -> subtype) {
+      return nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&currentFunc -> op2, var_name), n2, NULL, NULL); 
+    } else if (currentFunc != NULL && currentFunc -> op1 != NULL && tableGet(&currentFunc -> op1, var_name) != NULL && n2 -> op1 -> subtype == tableGet(&currentFunc -> op1, var_name) -> subtype) { 
+      return nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&currentFunc -> op1, var_name), n2, NULL, NULL); 
+    } else if (symbolRoot != NULL && tableGet(&symbolRoot, var_name) != NULL && n2 -> op1 -> subtype == tableGet(&symbolRoot, var_name) -> subtype) {
+      return nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&symbolRoot, var_name), n2, NULL, NULL); 
+    } else {
+      die_line("Los 'subtypes' de la función en assign no son compatibles");
+    }
+  }
+
+  die("Error en assignCheck");
+  return NULL;
+}
+
 // Crea un nuevo nodo y regresa un apuntador a este
 Node* nodeNew(int type, int subtype, char *name, Value *value, Node *next, Node *op1, Node *op2, Node *op3, Node *op4)
 {
@@ -300,6 +332,8 @@ int subtypeGetCommon(int s1, int s2)
 */
 int treeGetType(Node *n)
 {
+  if (n -> type != T_VARIABLE && n -> type != T_CONSTANT && n -> type != T_ARITHMETIC_OP) die("Nodo invalido como argumento a treeGetType");
+
   if (n -> op1 == NULL && n -> op2 == NULL)
     return n -> subtype;
 
@@ -630,8 +664,8 @@ Node* interpretFunCall(Node *node)
   Node *res = NULL;
   Node *fun = tableGet(&funcRoot, node -> name);
 
-  Node *fun_st_back = malloc(sizeof(Node) * (*fun -> value -> val_int));
-  memcpy(fun_st_back, fun -> op2, sizeof(Node) * (*fun -> value -> val_int));
+  Node *fun_pm_back = malloc(sizeof(Node) * (*fun -> value -> val_int));
+  memcpy(fun_pm_back, fun -> op2, sizeof(Node) * (*fun -> value -> val_int));
 
   for (int i = 0; i < *fun -> value -> val_int; i++) {
     tableGetIndex(&fun->op2, i) -> value = arithOpEval(tableGetIndex(&node -> op1, i));
@@ -639,8 +673,8 @@ Node* interpretFunCall(Node *node)
 
   res = interpretNode(fun -> op3);
 
-  fun -> op2 = fun_st_back;
-  fun_st_back = NULL;
+  fun -> op2 = fun_pm_back;
+  fun_pm_back = NULL;
 
   return res;
 }
@@ -729,6 +763,25 @@ void valueAssign(Value *var, Value *expr)
   free(expr);
 }
 
+void interpretAssign(Node *node)
+{
+  if (node == NULL) die("Nodo NULL como argumento a interpretAssign");
+  if (node -> subtype != ASSIGN) die("Subtipo invalido como argumento a interpretAssign");
+
+  Node *fun_res = NULL;
+
+  if (node -> op2 -> subtype != FUN_CALL) {
+    valueAssign(node -> op1 -> value, arithOpEval(node -> op2));
+  } else {
+    fun_res = interpretFunCall(node -> op2);
+    if (fun_res == NULL || fun_res -> value == NULL) {
+      die("La función nó retorno a la asignación");
+    } else {
+      valueAssign(node -> op1 -> value, fun_res -> value);
+    }
+  }
+}
+
 void interpretPrint(Node *node)
 {
   if (node == NULL) die("Nodo nulo como argumento a interpretPrint");
@@ -761,7 +814,7 @@ Node* interpretNode(Node *node)
 
   switch (node -> subtype) {
     case ASSIGN:
-      valueAssign(node -> op1 -> value, arithOpEval(node -> op2));
+      interpretAssign(node);
       break;
     case READ:
       varRead(node -> op1);
@@ -795,8 +848,7 @@ Node* interpretNode(Node *node)
       break;  
   }
 
-  if (node -> next != NULL) interpretNode(node -> next);
-
+  if (node -> next != NULL) return interpretNode(node -> next);
   return NULL;
 }
 

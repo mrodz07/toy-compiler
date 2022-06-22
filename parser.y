@@ -100,15 +100,7 @@ param: ID COLON type { tableAddNode(&currentParamTable, nodeNew(T_VARIABLE, $3, 
 
 stmt: ID ARROW expr {
                       // La condicional que aparece en esta regla junto con expr, term, factor y expression sirve para comprobar que los tipos de argumentos (variable y expresión en este caso) sean iguales
-                      if (currentFunc != NULL && currentFunc -> op2 != NULL && tableGet(&currentFunc -> op2, $1) != NULL && subtypeGetCommon(tableGet(&currentFunc -> op2, $1) -> subtype, treeGetType($3)) != -1) { 
-                        $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&currentFunc -> op2, $1), $3, NULL, NULL); 
-                      } else if (currentFunc != NULL && currentFunc -> op1 != NULL && tableGet(&currentFunc -> op1, $1) != NULL && subtypeGetCommon(tableGet(&currentFunc -> op1, $1) -> subtype, treeGetType($3)) != -1) { 
-                        $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&currentFunc -> op1, $1), $3, NULL, NULL); 
-                      } else if (symbolRoot != NULL && tableGet(&symbolRoot, $1) != NULL && subtypeGetCommon(tableGet(&symbolRoot, $1) -> subtype, treeGetType($3)) != -1) {
-                        $$ = nodeNew(T_SENTENCE, ASSIGN, NULL, NULL, NULL, tableGet(&symbolRoot, $1), $3, NULL, NULL); 
-                      } else {
-                        die_line("Los 'subtypes' son distintos en ASSIGN o no se encontró la variable"); 
-                      }
+                      $$ = assignCheck($1, $3);
                     }
     | IF expression THEN stmt { $$ = nodeNew(T_SENTENCE, IF, NULL, NULL, NULL, $2, $4, NULL, NULL); }
     | IF expression THEN stmt ELSE stmt { $$ = nodeNew(T_SENTENCE, IF_ELSE, NULL, NULL, NULL, $2, $4, $6, NULL); }

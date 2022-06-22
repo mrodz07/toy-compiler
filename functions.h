@@ -79,6 +79,7 @@ int subtypeGetCommon(int s1, int s2);
 
 // Funciones para interpretar el arbol
 Node* interpretNode(Node *node);
+void interpretAssign(Node *node);
 void interpretIf(Node *node);
 void interpretIfElse(Node *node);
 void interpretWhile(Node *node);
@@ -110,6 +111,9 @@ Value* valueSum(Value *n1, Value *n2);
 Value* valueRes(Value *n1, Value *n2);
 Value* valueDiv(Value *n1, Value *n2);
 Value* valueMul(Value *n1, Value *n2);
+
+// Funciones para revisar los valores cuando se interpreta
+Node* assignCheck(char *var_name, Node *n2);
 
 // Funciones que crean nodos y valores
 Node* nodeNew(int type, int subtype, char *name, Value *value, Node *next, Node *op1, Node *op2, Node *op3, Node *op4);
