@@ -80,8 +80,8 @@ int subtypeGetCommon(int s1, int s2);
 // Funciones para interpretar el arbol
 Node* interpretNode(Node *node);
 void interpretAssign(Node *node);
-void interpretIf(Node *node);
-void interpretIfElse(Node *node);
+Node* interpretIf(Node *node);
+Node* interpretIfElse(Node *node);
 void interpretWhile(Node *node);
 void interpretRepeat(Node *node);
 void interpretFor(Node *node); 

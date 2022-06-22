@@ -273,7 +273,7 @@ void tableAddNode(Node **t, Node *n)
 {
   if (t == NULL) die("t nulo como argumento a tableAddNode");
   if (n == NULL) die("Node nulo como argumento a tableAddNode");
-  if (n -> type != T_VARIABLE && n -> type != T_FUNCTION && n -> type != T_CONSTANT) die("Nodo incorrecto como argumento a tableAddNode");
+  if (n -> type != T_VARIABLE && n -> type != T_FUNCTION && n -> type != T_CONSTANT && n -> type != T_ARITHMETIC_OP) die("Nodo incorrecto como argumento a tableAddNode");
 
   if (*t == NULL) {
     *t = n;
@@ -332,10 +332,14 @@ int subtypeGetCommon(int s1, int s2)
 */
 int treeGetType(Node *n)
 {
-  if (n -> type != T_VARIABLE && n -> type != T_CONSTANT && n -> type != T_ARITHMETIC_OP) die("Nodo invalido como argumento a treeGetType");
+  if (n -> type != T_VARIABLE && n -> type != T_CONSTANT && n -> type != T_ARITHMETIC_OP && n -> type != T_SENTENCE) die("Nodo invalido como argumento a treeGetType");
 
-  if (n -> op1 == NULL && n -> op2 == NULL)
+  if (n -> op1 == NULL && n -> op2 == NULL) {
     return n -> subtype;
+  }
+  else if (n -> subtype == FUN_CALL) {
+    return treeGetType(tableGet(&funcRoot, n -> name) -> op2);
+  }
 
   return subtypeGetCommon(treeGetType(n -> op1), treeGetType(n -> op2));
 }
@@ -538,29 +542,33 @@ int valueGretOrEq(Value *n1, Value *n2)
 /*
 * Función que interpreta el nodo IF
 */
-void interpretIf(Node *node)
+Node* interpretIf(Node *node)
 {
   if (node == NULL) die("interpretIf llamado con NULL");
   if (node -> subtype != IF) die("interpretIf llamado con nodo incorrecto");
 
   if (logicalOpEval(node -> op1)) {
-    interpretNode(node -> op2);
+    return interpretNode(node -> op2);
   }
+  
+  return NULL;
 }
 
 /*
 * Función que interpreta el nodo IF_ELSE
 */
-void interpretIfElse(Node *node)
+Node* interpretIfElse(Node *node)
 {
   if (node == NULL) die("interpretIfElse llamado con NULL");
   if (node -> subtype != IF_ELSE) die("interpretIfElse llamado con nodo incorrecto");
 
   if (logicalOpEval(node -> op1)) {
-    interpretNode(node -> op2);
+    return interpretNode(node -> op2);
   } else {
-    interpretNode(node -> op3);
+    return interpretNode(node -> op3);
   }
+  
+  return NULL;
 }
 
 /*
@@ -685,7 +693,9 @@ Node* interpretFunCall(Node *node)
 Value* arithOpEval(Node *node)
 {
   if (node == NULL) die("Mandado a llamar arithOpEval con NULL");
-  if (node -> type != T_ARITHMETIC_OP && node -> type != T_CONSTANT && node -> type != T_VARIABLE) die("Expresión incorrecta como argumento a arithOpEval");
+  if (node -> type != T_ARITHMETIC_OP && node -> type != T_CONSTANT && node -> type != T_VARIABLE && node -> type != T_SENTENCE) die("Expresión incorrecta como argumento a arithOpEval");
+
+  Node *tmp = NULL;
 
   switch (node -> subtype) {
     case SUM:
@@ -705,6 +715,14 @@ Value* arithOpEval(Node *node)
       break; 
     case FLOAT:
       return node -> value;
+      break;
+    case FUN_CALL:
+      tmp = interpretFunCall(node);  
+      if (tmp != NULL && tmp -> value != NULL) {
+        return tmp -> value;
+      } else {
+        die("Error al ejecutar función");
+      }
       break;
     default:
       die("Nodo con 'subtype' incorrecto en arithOpEval");
@@ -768,18 +786,7 @@ void interpretAssign(Node *node)
   if (node == NULL) die("Nodo NULL como argumento a interpretAssign");
   if (node -> subtype != ASSIGN) die("Subtipo invalido como argumento a interpretAssign");
 
-  Node *fun_res = NULL;
-
-  if (node -> op2 -> subtype != FUN_CALL) {
-    valueAssign(node -> op1 -> value, arithOpEval(node -> op2));
-  } else {
-    fun_res = interpretFunCall(node -> op2);
-    if (fun_res == NULL || fun_res -> value == NULL) {
-      die("La función nó retorno a la asignación");
-    } else {
-      valueAssign(node -> op1 -> value, fun_res -> value);
-    }
-  }
+  valueAssign(node -> op1 -> value, arithOpEval(node -> op2));
 }
 
 void interpretPrint(Node *node)
@@ -823,10 +830,10 @@ Node* interpretNode(Node *node)
       interpretPrint(node);
       break;
     case IF:
-      interpretIf(node); 
+      return interpretIf(node); 
       break;
     case IF_ELSE:
-      interpretIfElse(node);
+      return interpretIfElse(node);
       break;
     case WHILE:
       interpretWhile(node);
