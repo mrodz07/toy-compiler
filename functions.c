@@ -211,6 +211,9 @@ Node* tableGet(Node **t, const char *name)
   return NULL;
 }
 
+/* 
+ * Se comprueba que los valores pasados a la variable para asignar sean validos. Dependiendo del tipo hacemos distintas verificacoines, la lógica es la misma que en la función de asignación
+ */
 Node* assignCheck(char *var_name, Node *n2)
 {
   if (n2 == NULL) die("Valor nulo a assignCheck");
@@ -644,6 +647,9 @@ void interpretFor(Node *node)
   }
 }
 
+/*
+ * Función que regresa el valor de una tabla dependiendo del indice
+ */
 Node* tableGetIndex(Node **t, int i)
 {
   if (t == NULL) die("El argumento t pasado a tableGetIndex es NULL");
@@ -664,6 +670,9 @@ Node* tableGetIndex(Node **t, int i)
   return tmp;
 }
 
+/*
+ * Función que interpreta las llamadas a función
+ */
 Node* interpretFunCall(Node *node)
 {
   if (node == NULL) die("interpretFunCall llamado con argumento NULL");
@@ -672,9 +681,11 @@ Node* interpretFunCall(Node *node)
   Node *res = NULL;
   Node *fun = tableGet(&funcRoot, node -> name);
 
+  // Copiamos la lista de argumentos, para después restaurarla
   Node *fun_pm_back = malloc(sizeof(Node) * (*fun -> value -> val_int));
   memcpy(fun_pm_back, fun -> op2, sizeof(Node) * (*fun -> value -> val_int));
 
+  // Copiamos los valores de la llamada a función a las variables que guarda la función.
   for (int i = 0; i < *fun -> value -> val_int; i++) {
     tableGetIndex(&fun->op2, i) -> value = arithOpEval(tableGetIndex(&node -> op1, i));
   }
@@ -781,6 +792,9 @@ void valueAssign(Value *var, Value *expr)
   free(expr);
 }
 
+/*
+ * Función para interpretar la asignación
+ */
 void interpretAssign(Node *node)
 {
   if (node == NULL) die("Nodo NULL como argumento a interpretAssign");
@@ -789,6 +803,9 @@ void interpretAssign(Node *node)
   valueAssign(node -> op1 -> value, arithOpEval(node -> op2));
 }
 
+/*
+ * Función que interpreta la función de imprimir. Se comporta diferente cuando se llama a una función
+ */
 void interpretPrint(Node *node)
 {
   if (node == NULL) die("Nodo nulo como argumento a interpretPrint");
@@ -803,6 +820,9 @@ void interpretPrint(Node *node)
   }
 }
 
+/*
+ * Función que interpreta el retorno. Regresa un nodo nuevo con las operaciones 'puestas' en el return
+ */
 Node* interpretReturn(Node *node)
 {
   if (node == NULL) die("Argumento NULL pasado a interpretReturn");
@@ -859,6 +879,9 @@ Node* interpretNode(Node *node)
   return NULL;
 }
 
+/*
+* Función que revisa la validez de los argumentos pasados a una función
+*/
 int functionCheckValidArgs(Node *params, int params_size, Node *args, int args_size)
 {
   if (params == NULL) die("Params nulo pasado a functionCheckValidArgs como argumento");

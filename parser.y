@@ -20,7 +20,8 @@
 %type<val_int> type
 %start prog
 
-/* Opciones de bison
+/* 
+* Opciones de bison
 * Se da mayor precedencia a THEN para eliminar los conflictos de 'shift/reduce'
 */
 %precedence THEN
@@ -39,7 +40,7 @@ decl_lst: decl SEMCLN decl_lst
         | decl
         ;
 
-decl: VAR ID COLON type { tableAddNode(&currentSymbolTable, nodeNew(T_VARIABLE, $4, $2, valueNew($4, 0, 0), NULL, NULL, NULL, NULL, NULL));  /* Agregamos los nodos al apuntador de tabla de símbolos hecho al inicio del programa */ }
+decl: VAR ID COLON type { tableAddNode(&currentSymbolTable, nodeNew(T_VARIABLE, $4, $2, valueNew($4, 0, 0), NULL, NULL, NULL, NULL, NULL));  /* Agregamos los nodos al apuntador actual */ }
     ;
 
 type: INT   { $$ = INT; }
@@ -56,6 +57,10 @@ fun_decls: fun_decls fun_decl
 
 fun_decl: FUN ID PRNTH1 oparams PRNTH2 COLON type opt_decls 
         { 
+          /* 
+          *  Agregamos la función a la tabla de símbolos, después la poblaremos con el cuerpo de la función.
+          *  Nos aseguramos de que el número de argumentos sea el correcto.
+          */
           if (funcRoot != NULL && tableGet(&funcRoot, $2) != NULL) {
             if (tableGet(&funcRoot, $2) -> op1 == NULL) { 
               tableGet(&funcRoot, $2) -> op1 = currentSymbolTable;
@@ -96,10 +101,10 @@ params: param COMMA params
       | param
       ;
 
-param: ID COLON type { tableAddNode(&currentParamTable, nodeNew(T_VARIABLE, $3, $1, valueNew($3, 0, 0), NULL, NULL, NULL, NULL, NULL)); paramCounter++; }
+param: ID COLON type { tableAddNode(&currentParamTable, nodeNew(T_VARIABLE, $3, $1, valueNew($3, 0, 0), NULL, NULL, NULL, NULL, NULL)); paramCounter++; /* Por cada parámetro sumamos a paramCounter, para tener en cuenta cuantos argumentos recibe la función */}
 
 stmt: ID ARROW expr {
-                      // La condicional que aparece en esta regla junto con expr, term, factor y expression sirve para comprobar que los tipos de argumentos (variable y expresión en este caso) sean iguales
+                      // La condicional que aparece en esta regla junto con expr, term, factor y expression sirve para comprobar que los tipos de argumentos (variable y expresión en este caso) sean iguales. También buscan el nombre de la variable donde se guardará el valor resultante. Primeramente en la lista de parámetros, después en las variables declaradas localmente y después en la lista de variables globales.
                       $$ = assignCheck($1, $3);
                     }
     | IF expression THEN stmt { $$ = nodeNew(T_SENTENCE, IF, NULL, NULL, NULL, $2, $4, NULL, NULL); }
@@ -169,6 +174,7 @@ term: term MUL factor {
 
 factor: PRNTH1 expr PRNTH2 { $$ = $2; }
       | ID { 
+              // La misma lógica que en statement
               if (currentFunc != NULL && currentFunc -> op2 != NULL && tableGet(&currentFunc -> op2, $1) != NULL) {
                 $$ = tableGet(&currentFunc -> op2, $1);   
               } else if (currentFunc != NULL && currentFunc -> op1 != NULL && tableGet(&currentFunc -> op1, $1)) {
@@ -182,6 +188,7 @@ factor: PRNTH1 expr PRNTH2 { $$ = $2; }
       | NUM_INT { $$ = nodeNew(T_CONSTANT, INT, NULL, valueNew(INT, $1, 0), NULL, NULL, NULL, NULL, NULL); }
       | NUM_FLT { $$ = nodeNew(T_CONSTANT, FLOAT, NULL, valueNew(FLOAT, 0, $1), NULL, NULL, NULL, NULL, NULL); }
       | ID PRNTH1 opt_exprs PRNTH2 { 
+                                      // Al llamar la función comprobamos que los argumentos sean validos
                                       if (funcRoot != NULL && tableGet(&funcRoot, $1) != NULL) {
                                         if (functionCheckValidArgs(tableGet(&funcRoot, $1) -> op2, *tableGet(&funcRoot, $1) -> value -> val_int, currentParamTable, argCounter)) {
                                           $$ = nodeNew(T_SENTENCE, FUN_CALL, $1, valueNew(INT, argCounter, 0), NULL, currentParamTable, NULL, NULL, NULL); 
@@ -205,6 +212,7 @@ expr_lst: expr_tmp COMMA expr_lst
         ;
 
 expr_tmp: expr {
+                  // Al hacer la lista de argumentos para llamar a una función hacemos nodos nuevos, esto para evitar un error donde un nodo apunta a sí mismo. 
                   if ($1 -> type != T_VARIABLE) {
                     tableAddNode(&currentParamTable, $1);
                   } else {

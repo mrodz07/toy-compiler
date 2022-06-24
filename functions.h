@@ -96,7 +96,7 @@ int functionCheckValidArgs(Node *params, int params_size, Node *args, int args_s
 void varRead(Node *symb);
 void valuePrint(Value *val);
 
-// Funciones para interpretar las operaciones lógicas y aritméticas: +, -, *, /, <, >, >=, <=
+// Funciones para interpretar las operaciones lógicas
 int logicalOpEval(Node *node);
 int valueLestn(Value *n1, Value *n2);
 int valueGretn(Value *n1, Value *n2);
@@ -112,7 +112,7 @@ Value* valueRes(Value *n1, Value *n2);
 Value* valueDiv(Value *n1, Value *n2);
 Value* valueMul(Value *n1, Value *n2);
 
-// Funciones para revisar los valores cuando se interpreta
+// Funciones para revisar los valores cuando se interpreta, particularmente cuando se hace una asignación
 Node* assignCheck(char *var_name, Node *n2);
 
 // Funciones que crean nodos y valores
