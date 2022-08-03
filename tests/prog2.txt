@@ -1,0 +1,6 @@
+program dos
+  var x : int
+begin
+  read x;
+  print x + 5
+end

@@ -1,0 +1,10 @@
+program cinco
+   var x : int;
+   var z : float;
+   var hola : int
+begin
+  x <- ~100;
+  for x <- 10 until 0 step ~1 do
+    print x;
+  print x
+end

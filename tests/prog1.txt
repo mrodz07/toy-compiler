@@ -1,0 +1,18 @@
+program uno
+  var x : int;
+  var y : int;
+  var z : int
+  fun res(a : int, b : int): int;
+  fun res(a : int, b : int): int
+  begin
+    return a - b
+  end
+  fun sum(a : int, b : int): int
+  begin
+    return a + b
+  end
+begin
+  x <- 5;
+  y <- 2;
+  print sum(x, y)
+end

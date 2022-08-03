@@ -1,0 +1,22 @@
+program cuatro
+   var x : int;
+   var y : int;
+   var acum : int;
+   var cont : int
+begin
+   acum <- 0;
+   cont <- 0;
+   read x;
+   read y;
+   print x;
+   print y;
+   while (cont < x)
+   begin
+      acum <- acum + y;
+      cont <- cont + 1;
+      print acum;
+      print cont
+   end;
+   print cont;
+   print acum
+end

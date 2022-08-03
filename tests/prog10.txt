@@ -1,0 +1,17 @@
+program dosfun
+   var x : int;
+   var y : int
+
+   fun doble(x : int) : int
+   var a : int
+   begin
+     a <- x * 2;
+     return a
+   end
+
+begin
+  read x;
+  y <- doble(x);
+  print x;
+  print y
+end

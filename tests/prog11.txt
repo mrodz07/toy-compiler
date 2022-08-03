@@ -1,0 +1,19 @@
+program tresfun
+   var x : int;
+   var y : int
+
+   fun factorial2(x : int) : int
+   var a : int
+   begin
+     print x;
+     if x = 0 then
+        return 1
+     else 
+        return x * factorial2(x-1)
+   end
+
+begin
+  read x;
+  y <- factorial2(x);
+  print y
+end

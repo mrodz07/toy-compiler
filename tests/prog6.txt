@@ -1,0 +1,9 @@
+program seis
+   var x : int
+begin
+  x <- ((5 * 4) + 2) / 2;
+  if x < 4 then
+    print x
+  else
+    print 0
+end

@@ -1,0 +1,15 @@
+program unofun
+  var x : int
+
+  fun ff(x : int) : int
+    var y : int
+  begin
+    x <- 5;
+    print x;
+    return 1200
+  end
+
+  begin
+     x <- ff(3);
+     print x
+  end

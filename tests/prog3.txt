@@ -1,0 +1,10 @@
+program tres
+   var x : int;
+   var y : int
+begin
+   read x;
+   read y;
+   print x;
+   print y;
+   print ((x*y)+4)*2
+end
