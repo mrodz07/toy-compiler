@@ -1,5 +1,7 @@
 /*
-***REMOVED*** * Declaraciones de las funciones de interpretación y construcción del arbol sintáctico
+ * 
+ *
+ * Declaraciones de las funciones de interpretación y construcción del arbol sintáctico
 */
 #include <stdlib.h>
 #include <stdio.h>

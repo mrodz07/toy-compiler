@@ -1,6 +1,8 @@
 %{
   /*
-***REMOVED***  * 'Parser' de lenguaje basado en pascal
+  * 
+  * 
+  * 'Parser' de lenguaje basado en pascal
   */
   #include "functions.c"
 %}

@@ -1,5 +1,7 @@
 /*
-***REMOVED*** * Funciones de interpretación y construcción del arbol sintáctico
+ * 
+ *
+ * Funciones de interpretación y construcción del arbol sintáctico
 */
 #include "functions.h"
 #include "parser.tab.h"

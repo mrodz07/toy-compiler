@@ -1,5 +1,7 @@
 /*
-***REMOVED**** 'Lexer' de lenguaje basado en pascal
+* 
+* 
+* 'Lexer' de lenguaje basado en pascal
 * La opción de yylineno es para llevar cuenta del número de linea
 * La opción de noinput y nounput es para reducir errores
 */
