@@ -3,10 +3,6 @@ program uno
   var y : int;
   var z : int
   fun res(a : int, b : int): int;
-  fun res(a : int, b : int): int
-  begin
-    return a - b
-  end
   fun sum(a : int, b : int): int
   begin
     return a + b
