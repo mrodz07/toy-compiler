@@ -1,5 +1,5 @@
 CC_FLAGS = -Wall -Wextra -Wpedantic -lfl -lm -g
-BISON_FLAGS = -d -Wcounterexamples
+BISON_FLAGS = -d -Wcounterexamples -Wother
 
 default: output
 
